@@ -1,0 +1,225 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: 16px;
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  
+  /* GitHub-inspired Color Palette */
+  --background: #FFFFFF;
+  --foreground: #24292F;
+  --card: #FFFFFF;
+  --card-foreground: #24292F;
+  --popover: #FFFFFF;
+  --popover-foreground: #24292F;
+  --primary: #0969DA;
+  --primary-foreground: #FFFFFF;
+  --secondary: #656D76;
+  --secondary-foreground: #FFFFFF;
+  --muted: #F6F8FA;
+  --muted-foreground: #656D76;
+  --accent: #F6F8FA;
+  --accent-foreground: #24292F;
+  --destructive: #CF222E;
+  --destructive-foreground: #FFFFFF;
+  --success: #1F883D;
+  --success-foreground: #FFFFFF;
+  --warning: #BF8700;
+  --warning-foreground: #FFFFFF;
+  --border: #D1D9E0;
+  --input: #FFFFFF;
+  --input-background: #FFFFFF;
+  --switch-background: #D1D9E0;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #0969DA;
+  --chart-1: #0969DA;
+  --chart-2: #656D76;
+  --chart-3: #1F883D;
+  --chart-4: #CF222E;
+  --chart-5: #BF8700;
+  --radius: 6px;
+  --sidebar: #F6F8FA;
+  --sidebar-foreground: #24292F;
+  --sidebar-primary: #0969DA;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F6F8FA;
+  --sidebar-accent-foreground: #656D76;
+  --sidebar-border: #D1D9E0;
+  --sidebar-ring: #0969DA;
+}
+
+.dark {
+  --background: #0D1117;
+  --foreground: #F0F6FC;
+  --card: #161B22;
+  --card-foreground: #F0F6FC;
+  --popover: #161B22;
+  --popover-foreground: #F0F6FC;
+  --primary: #1F6FEB;
+  --primary-foreground: #FFFFFF;
+  --secondary: #8B949E;
+  --secondary-foreground: #FFFFFF;
+  --muted: #21262D;
+  --muted-foreground: #8B949E;
+  --accent: #21262D;
+  --accent-foreground: #F0F6FC;
+  --destructive: #F85149;
+  --destructive-foreground: #FFFFFF;
+  --success: #3FB950;
+  --success-foreground: #FFFFFF;
+  --warning: #D29922;
+  --warning-foreground: #FFFFFF;
+  --border: #30363D;
+  --input: #161B22;
+  --input-background: #161B22;
+  --switch-background: #30363D;
+  --ring: #1F6FEB;
+  --chart-1: #1F6FEB;
+  --chart-2: #8B949E;
+  --chart-3: #3FB950;
+  --chart-4: #F85149;
+  --chart-5: #D29922;
+  --sidebar: #0D1117;
+  --sidebar-foreground: #F0F6FC;
+  --sidebar-primary: #1F6FEB;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #21262D;
+  --sidebar-accent-foreground: #F0F6FC;
+  --sidebar-border: #30363D;
+  --sidebar-ring: #1F6FEB;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-family);
+  }
+
+  code, pre, .font-mono {
+    font-family: var(--font-family-mono);
+  }
+}
+
+/**
+ * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
+ */
+@layer base {
+  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
+    h1 {
+      font-size: 2.5rem; /* 40px */
+      font-weight: 600;
+      line-height: 1.2;
+      letter-spacing: -0.025em;
+    }
+
+    h2 {
+      font-size: 2rem; /* 32px */
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: -0.025em;
+    }
+
+    h3 {
+      font-size: 1.5rem; /* 24px */
+      font-weight: 600;
+      line-height: 1.33;
+    }
+
+    h4 {
+      font-size: 1.125rem; /* 18px */
+      font-weight: 600;
+      line-height: 1.44;
+    }
+
+    p {
+      font-size: 1rem; /* 16px */
+      font-weight: 400;
+      line-height: 1.5;
+    }
+
+    label {
+      font-size: 0.875rem; /* 14px */
+      font-weight: 500;
+      line-height: 1.43;
+    }
+
+    button {
+      font-size: 0.875rem; /* 14px */
+      font-weight: 500;
+      line-height: 1.43;
+    }
+
+    input, textarea {
+      font-size: 0.875rem; /* 14px */
+      font-weight: 400;
+      line-height: 1.43;
+    }
+
+    .text-small {
+      font-size: 0.875rem; /* 14px */
+      line-height: 1.43;
+    }
+
+    .text-tiny {
+      font-size: 0.75rem; /* 12px */
+      line-height: 1.33;
+    }
+  }
+}
+
+html {
+  font-size: var(--font-size);
+}

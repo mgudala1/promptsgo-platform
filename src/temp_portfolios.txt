@@ -1,0 +1,33 @@
+
+// Sample portfolios for testing
+export const portfolios = [
+  {
+    id: 'portfolio-1',
+    userId: '1',
+    name: 'Business Communications Suite',
+    description: 'Professional prompts for business emails, presentations, and client communications.',
+    subdomain: 'sarah-business',
+    promptIds: ['1', '4'], // Professional Email Generator and other business prompts
+    isPasswordProtected: false,
+    isPublished: true,
+    viewCount: 145,
+    clientAccessCount: 23,
+    createdAt: '2024-02-20T10:00:00Z',
+    updatedAt: '2024-03-01T14:30:00Z'
+  },
+  {
+    id: 'portfolio-2',
+    userId: '2',
+    name: 'Developer Tools Collection',
+    description: 'Essential prompts for code review, debugging, and technical documentation.',
+    subdomain: 'alex-dev',
+    promptIds: ['2'], // Code review prompts
+    isPasswordProtected: true,
+    password: 'dev123',
+    isPublished: true,
+    viewCount: 89,
+    clientAccessCount: 12,
+    createdAt: '2024-02-25T15:20:00Z',
+    updatedAt: '2024-03-02T09:45:00Z'
+  }
+];
