@@ -2,7 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { User, Prompt, Comment, Heart, Save, Follow, Collection, Notification, Draft, SearchFilters, Portfolio, PromptPack, PromptFeedback, DigestSettings, UserPackLibrary } from '../lib/types';
 import { prompts, comments, promptFeedbacks, promptPacks } from '../lib/data';
 import { supabase } from '../lib/supabase';
-import { profiles } from '../lib/api';
+import { isAdmin, getInviteLimit } from '../lib/admin';
 
 interface AppState {
   user: User | null;
@@ -542,7 +542,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('theme', state.theme);
   }, [state.theme]);
 
-  // Listen for auth state changes - with comprehensive error handling
+  // Listen for auth state changes - SIMPLIFIED
   useEffect(() => {
     let mounted = true;
 
@@ -551,177 +551,114 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
 
       try {
-        // Check if Supabase is configured
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-        if (!supabaseUrl || !supabaseKey) {
-          console.warn('Supabase not configured - running in offline mode');
-          dispatch({ type: 'SET_ERROR', payload: 'Supabase not configured. Please check your environment variables.' });
-          return;
-        }
-
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.warn('Supabase auth session error:', error.message);
-          // Don't set error state for auth issues - just log and continue
-          return;
-        }
-
+        console.log("[AppContext] Checking for existing session...");
+        const { data: { session } } = await supabase.auth.getSession();
+        
         if (session?.user && mounted) {
-          try {
-            // Get user profile from database
-            const { data: profile, error: profileError } = await profiles.get(session.user.id);
-            if (profileError) {
-              console.warn('Profile fetch error:', profileError.message);
-              // Create a basic profile from auth data if database profile doesn't exist
-              const basicProfile: User = {
-                id: session.user.id,
-                username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
-                email: session.user.email || '',
-                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-                bio: '',
-                reputation: 0,
-                createdAt: new Date().toISOString(),
-                lastLogin: new Date().toISOString(),
-                badges: [],
-                skills: [],
-                subscriptionPlan: 'free' as const,
-                saveCount: 0,
-                invitesRemaining: 0
-              };
-              dispatch({ type: 'SET_USER', payload: basicProfile });
-              return;
-            }
-            if (profile && mounted) {
-              dispatch({ type: 'SET_USER', payload: profile });
-            }
-          } catch (err) {
-            console.warn('Error getting user profile:', err);
-            // Still set basic user info from auth
-            if (session?.user && mounted) {
-              const basicProfile: User = {
-                id: session.user.id,
-                username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
-                email: session.user.email || '',
-                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-                bio: '',
-                reputation: 0,
-                createdAt: new Date().toISOString(),
-                lastLogin: new Date().toISOString(),
-                badges: [],
-                skills: [],
-                subscriptionPlan: 'free' as const,
-                saveCount: 0,
-                invitesRemaining: 0
-              };
-              dispatch({ type: 'SET_USER', payload: basicProfile });
-            }
+          console.log("[AppContext] Found existing session for user:", session.user.email);
+          
+          // Create basic user from session
+          const user: User = {
+            id: session.user.id,
+            username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+            bio: '',
+            reputation: 0,
+            createdAt: session.user.created_at || new Date().toISOString(),
+            lastLogin: new Date().toISOString(),
+            badges: [],
+            skills: [],
+            subscriptionPlan: 'free' as const,
+            saveCount: 0,
+            invitesRemaining: 5,
+            isAdmin: false,
+            isAffiliate: false
+          };
+          
+          // Check and apply admin privileges
+          if (isAdmin(user)) {
+            console.log("[AppContext] ⭐ Admin user detected - granting pro features");
+            user.subscriptionPlan = 'pro';
+            user.reputation = 1000;
+            user.invitesRemaining = getInviteLimit(user);
+            user.isAdmin = true;
+            user.isAffiliate = true;
           }
+          
+          dispatch({ type: 'SET_USER', payload: user });
+        } else {
+          console.log("[AppContext] No existing session found");
         }
       } catch (err) {
-        console.warn('Error getting initial session:', err);
-        // Don't crash the app - just log the error
+        console.error('[AppContext] Error getting initial session:', err);
       }
     };
 
     getInitialSession();
 
     // Listen for auth changes
-    let subscription: any;
-    try {
-      const authSubscription = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          if (!mounted) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
+        
+        console.log(`[AppContext] Auth state changed: ${event}`);
 
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log("[AppContext] User signed in:", session.user.email);
+          
+          // Create basic user from session
+          const user: User = {
+            id: session.user.id,
+            username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+            bio: '',
+            reputation: 0,
+            createdAt: session.user.created_at || new Date().toISOString(),
+            lastLogin: new Date().toISOString(),
+            badges: [],
+            skills: [],
+            subscriptionPlan: 'free' as const,
+            saveCount: 0,
+            invitesRemaining: 5,
+            isAdmin: false,
+            isAffiliate: false
+          };
+          
+          // Check and apply admin privileges
+          if (isAdmin(user)) {
+            console.log("[AppContext] ⭐ Admin user detected - granting pro features");
+            user.subscriptionPlan = 'pro';
+            user.reputation = 1000;
+            user.invitesRemaining = getInviteLimit(user);
+            user.isAdmin = true;
+            user.isAffiliate = true;
+          }
+          
+          dispatch({ type: 'SET_USER', payload: user });
+        }
+        else if (event === 'SIGNED_OUT') {
+          console.log("[AppContext] User signed out - clearing state");
+          dispatch({ type: 'SET_USER', payload: null });
+          
+          // Clear Supabase session data from localStorage
           try {
-            if (event === 'SIGNED_IN' && session?.user) {
-              try {
-                // Get or create user profile
-                let { data: profile, error: profileError } = await profiles.get(session.user.id);
-
-                if (profileError) {
-                  console.warn('Profile fetch error on sign in:', profileError.message);
-                  // Create basic profile
-                  const basicProfile: User = {
-                    id: session.user.id,
-                    username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
-                    email: session.user.email || '',
-                    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-                    bio: '',
-                    reputation: 0,
-                    createdAt: new Date().toISOString(),
-                    lastLogin: new Date().toISOString(),
-                    badges: [],
-                    skills: [],
-                    subscriptionPlan: 'free' as const,
-                    saveCount: 0,
-                    invitesRemaining: 0
-                  };
-                  if (mounted) dispatch({ type: 'SET_USER', payload: basicProfile });
-                  return;
-                }
-
-                if (!profile) {
-                  try {
-                    // Create profile if it doesn't exist
-                    const profileData: User = {
-                      id: session.user.id,
-                      username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
-                      email: session.user.email || '',
-                      name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-                      bio: '',
-                      reputation: 0,
-                      createdAt: new Date().toISOString(),
-                      lastLogin: new Date().toISOString(),
-                      badges: [],
-                      skills: [],
-                      subscriptionPlan: 'free' as const,
-                      saveCount: 0,
-                      invitesRemaining: 0
-                    };
-                    const { data: newProfile, error: createError } = await profiles.create(profileData);
-                    if (createError) {
-                      console.warn('Profile creation error:', createError.message);
-                      // Still set basic profile
-                      if (mounted) dispatch({ type: 'SET_USER', payload: profileData });
-                      return;
-                    }
-                    profile = newProfile;
-                  } catch (err) {
-                    console.warn('Error creating user profile:', err);
-                    return;
-                  }
-                }
-
-                if (profile && mounted) {
-                  dispatch({ type: 'SET_USER', payload: profile });
-                }
-              } catch (err) {
-                console.warn('Error in sign in handler:', err);
+            Object.keys(localStorage).forEach(key => {
+              if (key.startsWith('sb-')) {
+                localStorage.removeItem(key);
               }
-            } else if (event === 'SIGNED_OUT') {
-              if (mounted) dispatch({ type: 'SET_USER', payload: null });
-            }
+            });
           } catch (err) {
-            console.warn('Error in auth state change handler:', err);
+            console.warn('Error clearing localStorage:', err);
           }
         }
-      );
-      subscription = authSubscription.data.subscription;
-    } catch (err) {
-      console.warn('Error setting up auth subscription:', err);
-    }
+      }
+    );
 
     return () => {
       mounted = false;
-      if (subscription) {
-        try {
-          subscription.unsubscribe();
-        } catch (err) {
-          console.warn('Error unsubscribing from auth:', err);
-        }
-      }
+      subscription.unsubscribe();
     };
   }, []);
 

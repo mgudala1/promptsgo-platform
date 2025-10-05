@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Badge } from "./ui/badge";
@@ -15,10 +14,10 @@ const memoizedCategories = categories;
 const memoizedModels = models;
 const memoizedPromptTypes = promptTypes;
 const memoizedPopularTags = popularTags;
-import { prompts as promptsApi } from "../lib/api";
+import { prompts as promptsApi, hearts as heartsApi, saves as savesApi } from "../lib/api";
+import { supabase } from "../lib/supabase";
 import { Prompt, SearchFilters } from "../lib/types";
-import { Search, Filter, Grid3X3, List, X, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "./ui/alert";
+import { Filter, Grid3X3, List, X } from "lucide-react";
 
 interface ExplorePageProps {
   onBack: () => void;
@@ -35,25 +34,58 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
 
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Use global search filters from context
   const filters = state.searchFilters;
 
-  // Use local prompts immediately for instant loading
+  // Load database prompts with user hearts/saves
   useEffect(() => {
-    setPrompts(state.prompts);
-    setLoading(false);
-
-    // Optional: Try to sync with Supabase in background (non-blocking)
-    const syncWithSupabase = async () => {
+    const loadPrompts = async () => {
       try {
-        const { data, error: apiError } = await promptsApi.getAll();
+        const { data, error } = await promptsApi.getAll();
+        if (!error && data) {
+          // Load user's hearts and saves
+          let userHearts: string[] = [];
+          let userSaves: string[] = [];
 
-        if (!apiError && data && data.length > 0) {
-          // Transform Supabase data to match our Prompt type
+          if (state.user) {
+            try {
+              // Load database hearts/saves for UUID prompts
+              const { data: heartsData } = await supabase
+                .from('hearts')
+                .select('prompt_id')
+                .eq('user_id', state.user.id);
+              userHearts = heartsData?.map((h: any) => h.prompt_id) || [];
+
+              const { data: savesData } = await supabase
+                .from('saves')
+                .select('prompt_id')
+                .eq('user_id', state.user.id);
+              userSaves = savesData?.map((s: any) => s.prompt_id) || [];
+
+              // Load localStorage hearts/saves for non-UUID prompts
+              const localStorageKeys = Object.keys(localStorage);
+              localStorageKeys.forEach(key => {
+                if (key.startsWith(`hearts_${state.user!.id}_`)) {
+                  const promptId = key.replace(`hearts_${state.user!.id}_`, '');
+                  if (localStorage.getItem(key) === 'true') {
+                    userHearts.push(promptId);
+                  }
+                }
+                if (key.startsWith(`saves_${state.user!.id}_`)) {
+                  const promptId = key.replace(`saves_${state.user!.id}_`, '');
+                  if (localStorage.getItem(key) === 'true') {
+                    userSaves.push(promptId);
+                  }
+                }
+              });
+            } catch (err) {
+              console.warn('Failed to load user hearts/saves:', err);
+            }
+          }
+
           const transformedPrompts: Prompt[] = data.map(item => ({
             id: item.id,
             userId: item.user_id,
@@ -76,29 +108,29 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
             commentCount: item.comment_count,
             createdAt: item.created_at,
             updatedAt: item.updated_at,
-            attachments: [], // Not in current schema
+            attachments: [],
             author: item.profiles ? {
               id: item.profiles.id,
               username: item.profiles.username,
-              email: item.profiles.email,
+              email: item.profiles.email || '',
               name: item.profiles.name,
               bio: item.profiles.bio || undefined,
               website: item.profiles.website || undefined,
               github: item.profiles.github || undefined,
               twitter: item.profiles.twitter || undefined,
-              reputation: 0, // Not in profiles table yet
-              createdAt: item.profiles.created_at,
-              lastLogin: item.profiles.created_at,
+              reputation: 0,
+              createdAt: item.profiles.created_at || item.created_at,
+              lastLogin: item.profiles.created_at || item.created_at,
               badges: [],
               skills: [],
-              subscriptionPlan: item.profiles.subscription_plan,
+              subscriptionPlan: item.profiles.subscription_plan || 'free',
               saveCount: 0,
-              invitesRemaining: item.profiles.invites_remaining
+              invitesRemaining: item.profiles.invites_remaining || 0
             } : {
               id: item.user_id,
-              username: 'unknown',
-              email: 'unknown@example.com',
-              name: 'Unknown User',
+              username: 'user',
+              email: '',
+              name: 'User',
               reputation: 0,
               createdAt: item.created_at,
               lastLogin: item.created_at,
@@ -118,27 +150,33 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
               width: img.width || undefined,
               height: img.height || undefined
             })) || [],
-            isHearted: false, // Will be set by user interactions
-            isSaved: false,   // Will be set by user interactions
+            isHearted: userHearts.includes(item.id),
+            isSaved: userSaves.includes(item.id),
             isForked: false
           }));
 
-          // Only update if we got fresh data
-          if (transformedPrompts.length > state.prompts.length) {
-            setPrompts(transformedPrompts);
-          }
+          // Merge with mock prompts
+          const mockPrompts = state.prompts.filter(p => ['1', '2', '3', '4'].includes(p.id));
+          const merged = [
+            ...transformedPrompts,
+            ...mockPrompts.filter(mock =>
+              !transformedPrompts.some(db => db.slug === mock.slug)
+            )
+          ];
+
+          setPrompts(merged);
+          dispatch({ type: 'SET_PROMPTS', payload: merged });
         }
+        setLoading(false); // Set loading to false after successful load
       } catch (err) {
-        // Silently fail - we already have local data
-        console.warn('Background sync with Supabase failed:', err);
+        console.error('Error loading prompts:', err);
+        setPrompts(state.prompts);
+        setLoading(false); // Set loading to false even on error
       }
     };
 
-    // Start background sync after a short delay to prioritize UI rendering
-    const timeoutId = setTimeout(syncWithSupabase, 100);
-
-    return () => clearTimeout(timeoutId);
-  }, [state.prompts]);
+    loadPrompts();
+  }, [state.user]); // Re-run when user changes (login/logout)
 
   // Initialize search query from prop
   useEffect(() => {
@@ -303,24 +341,6 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
     );
   }
 
-  // Show error state
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-6">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {error}
-          </AlertDescription>
-        </Alert>
-        <div className="text-center py-8">
-          <Button onClick={() => window.location.reload()}>
-            Try Again
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -588,20 +608,83 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
                   isHearted={prompt.isHearted}
                   createdAt={prompt.createdAt}
                   onClick={() => onPromptClick(prompt.id)}
-                  onHeart={() => {
-                    if (!state.user) return;
-                    if (prompt.isHearted) {
-                      dispatch({ type: 'UNHEART_PROMPT', payload: { promptId: prompt.id } });
-                    } else {
-                      dispatch({ type: 'HEART_PROMPT', payload: { promptId: prompt.id } });
+                  onHeart={async () => {
+                    if (!state.user) {
+                      console.log('User not authenticated');
+                      return;
+                    }
+                    console.log('Toggling heart for prompt:', prompt.id, 'Current isHearted:', prompt.isHearted);
+                    try {
+                      const result = await heartsApi.toggle(prompt.id);
+                      console.log('Heart result:', result);
+
+                      if (!result.error) {
+                        // Always update UI state for user experience, regardless of backend operation
+                        if (result.action === 'skipped') {
+                          console.log('Heart operation skipped for mock prompt, but updating UI anyway:', prompt.id);
+                        }
+
+                        // Toggle the heart state based on current state
+                        const newHeartedState = !prompt.isHearted;
+                        const heartCountChange = newHeartedState ? 1 : -1;
+
+                        console.log(`${newHeartedState ? 'Adding' : 'Removing'} heart - updating UI`);
+                        dispatch({
+                          type: newHeartedState ? 'HEART_PROMPT' : 'UNHEART_PROMPT',
+                          payload: { promptId: prompt.id }
+                        });
+                        setPrompts(prev => prev.map(p =>
+                          p.id === prompt.id ? {
+                            ...p,
+                            isHearted: newHeartedState,
+                            hearts: Math.max(0, p.hearts + heartCountChange)
+                          } : p
+                        ));
+                      } else {
+                        console.error('Heart error:', result.error);
+                      }
+                    } catch (error) {
+                      console.error('Heart exception:', error);
                     }
                   }}
-                  onSave={() => {
-                    if (!state.user) return;
-                    if (prompt.isSaved) {
-                      dispatch({ type: 'UNSAVE_PROMPT', payload: prompt.id });
-                    } else {
-                      dispatch({ type: 'SAVE_PROMPT', payload: { promptId: prompt.id } });
+                  onSave={async () => {
+                    if (!state.user) {
+                      console.log('User not authenticated');
+                      return;
+                    }
+                    console.log('Toggling save for prompt:', prompt.id, 'Current isSaved:', prompt.isSaved);
+                    try {
+                      const result = await savesApi.toggle(prompt.id);
+                      console.log('Save result:', result);
+
+                      if (!result.error) {
+                        // Always update UI state for user experience, regardless of backend operation
+                        if (result.action === 'skipped') {
+                          console.log('Save operation skipped for mock prompt, but updating UI anyway:', prompt.id);
+                        }
+
+                        // Toggle the save state based on current state
+                        const newSavedState = !prompt.isSaved;
+                        const saveCountChange = newSavedState ? 1 : -1;
+
+                        console.log(`${newSavedState ? 'Adding' : 'Removing'} save - updating UI`);
+                        if (newSavedState) {
+                          dispatch({ type: 'SAVE_PROMPT', payload: { promptId: prompt.id } });
+                        } else {
+                          dispatch({ type: 'UNSAVE_PROMPT', payload: prompt.id });
+                        }
+                        setPrompts(prev => prev.map(p =>
+                          p.id === prompt.id ? {
+                            ...p,
+                            isSaved: newSavedState,
+                            saveCount: Math.max(0, p.saveCount + saveCountChange)
+                          } : p
+                        ));
+                      } else {
+                        console.error('Save error:', result.error);
+                      }
+                    } catch (error) {
+                      console.error('Save exception:', error);
                     }
                   }}
                   onShare={async () => {

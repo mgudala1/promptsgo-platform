@@ -4,8 +4,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent } from "./ui/card";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { unsplash_tool } from "../tools/unsplash";
-import { Upload, X, ImageIcon, Star, StarOff, AlertCircle } from "lucide-react";
+import { Upload, X, Star, StarOff } from "lucide-react";
 import { PromptImage } from "../lib/types";
 import { storage } from "../lib/api";
 import { supabase } from "../lib/supabase";
@@ -24,8 +23,6 @@ export function ImageUpload({
   allowPrimarySelection = true 
 }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files) return;
@@ -46,7 +43,7 @@ export function ImageUpload({
           const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
           // Upload to Supabase Storage
-          const { data, error } = await storage.uploadImage('prompt-images', fileName, file);
+          const { error } = await storage.uploadImage('prompt-images', fileName, file);
           if (error) throw error;
 
           // Get public URL
@@ -102,31 +99,6 @@ export function ImageUpload({
     setIsDragging(false);
   }, []);
 
-  const handleUnsplashSearch = useCallback(async () => {
-    if (!searchQuery.trim()) return;
-    
-    setIsSearching(true);
-    try {
-      const imageUrl = await unsplash_tool({ query: searchQuery });
-      if (imageUrl && images.length < maxImages) {
-        const newImage: PromptImage = {
-          id: `unsplash-${Date.now()}`,
-          url: imageUrl,
-          altText: searchQuery,
-          isPrimary: images.length === 0,
-          size: 0, // Unknown for Unsplash images
-          mimeType: 'image/jpeg',
-          caption: `Image from Unsplash: ${searchQuery}`
-        };
-        onImagesChange([...images, newImage]);
-        setSearchQuery("");
-      }
-    } catch (error) {
-      console.error('Failed to fetch image from Unsplash:', error);
-    } finally {
-      setIsSearching(false);
-    }
-  }, [searchQuery, images, onImagesChange, maxImages]);
 
   const removeImage = useCallback((imageId: string) => {
     const updatedImages = images.filter(img => img.id !== imageId);
@@ -156,9 +128,6 @@ export function ImageUpload({
     <div className="space-y-4">
       <div className="space-y-2">
         <Label>Images ({images.length}/{maxImages})</Label>
-        <p className="text-sm text-muted-foreground">
-          Add images to enhance your prompt. The first image will be used as the primary preview.
-        </p>
       </div>
 
       {/* Upload Area */}
@@ -201,27 +170,6 @@ export function ImageUpload({
         </Card>
       )}
 
-      {/* Unsplash Search */}
-      {images.length < maxImages && (
-        <div className="space-y-2">
-          <Label>Or search Unsplash</Label>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Search for images..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleUnsplashSearch()}
-            />
-            <Button
-              type="button"
-              onClick={handleUnsplashSearch}
-              disabled={!searchQuery.trim() || isSearching}
-            >
-              {isSearching ? 'Searching...' : 'Search'}
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* Image Preview Grid */}
       {images.length > 0 && (

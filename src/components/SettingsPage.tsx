@@ -10,16 +10,17 @@ import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { useApp } from '../contexts/AppContext';
 import {
-  ArrowLeft, User, CreditCard, Shield, Palette,
-  Globe, Github, Twitter, Link, Crown, Mail, Trash2, ExternalLink
+  ArrowLeft, User, CreditCard, Shield,
+  Globe, Github, Twitter, Crown, ExternalLink
 } from 'lucide-react';
 
 interface SettingsPageProps {
   onBack: () => void;
   onNavigateToSubscription?: () => void;
+  onNavigateToBilling?: () => void;
 }
 
-export function SettingsPage({ onBack, onNavigateToSubscription }: SettingsPageProps) {
+export function SettingsPage({ onBack, onNavigateToSubscription, onNavigateToBilling }: SettingsPageProps) {
   const { state, dispatch } = useApp();
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
@@ -284,14 +285,23 @@ export function SettingsPage({ onBack, onNavigateToSubscription }: SettingsPageP
                       Upgrade to Pro
                     </Button>
                   ) : (
-                    <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1">
-                        Manage Billing
+                    <>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={onNavigateToBilling}
+                      >
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Manage Billing & Subscription
                       </Button>
-                      <Button variant="outline" className="flex-1">
-                        Cancel Subscription
-                      </Button>
-                    </div>
+                      {state.user.isAdmin && (
+                        <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                          <p className="text-xs text-blue-800 dark:text-blue-200">
+                            👑 <strong>Admin Note:</strong> You have Pro features automatically. Billing page shows UI demo.
+                          </p>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   <Button

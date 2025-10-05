@@ -9,7 +9,6 @@ import { useApp } from "../contexts/AppContext";
 import { pricingPlans } from "../lib/data";
 import { PRICING_PLANS } from "../lib/stripe";
 import { createSubscriptionPaymentIntent, getUserSubscription, SubscriptionData } from "../lib/subscription";
-import { StripeCheckout } from "./ui/StripeCheckout";
 import { ArrowLeft, Check, Star, Zap, Loader2, AlertCircle, CreditCard } from "lucide-react";
 
 interface SubscriptionPageProps {
@@ -18,11 +17,10 @@ interface SubscriptionPageProps {
 }
 
 export function SubscriptionPage({ onBack, onNavigateToBilling }: SubscriptionPageProps) {
-  const { state, dispatch } = useApp();
+  const { state } = useApp();
   const [isYearly, setIsYearly] = useState(false);
   const [userSubscription, setUserSubscription] = useState<SubscriptionData | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'pro' | null>(null);
-  const [clientSecret, setClientSecret] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -68,10 +66,11 @@ export function SubscriptionPage({ onBack, onNavigateToBilling }: SubscriptionPa
         throw new Error('Price ID not configured for selected plan');
       }
 
-      const paymentIntent = await createSubscriptionPaymentIntent(priceId, state.user.id);
-      setClientSecret(paymentIntent.client_secret);
+      const checkoutSession = await createSubscriptionPaymentIntent(priceId, state.user.id);
+      // Redirect to Stripe Checkout
+      window.location.href = checkoutSession.url;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to initiate payment';
+      const errorMessage = err instanceof Error ? err.message : 'Payment processing is not yet implemented. Please contact support for Pro upgrade.';
       setError(errorMessage);
       setSelectedPlan(null);
     } finally {
@@ -79,39 +78,6 @@ export function SubscriptionPage({ onBack, onNavigateToBilling }: SubscriptionPa
     }
   };
 
-  const handlePaymentSuccess = async () => {
-    // Update local state
-    if (state.user) {
-      const updatedUser = { ...state.user, subscriptionPlan: 'pro' as const };
-      dispatch({
-        type: 'SET_USER',
-        payload: updatedUser
-      });
-    }
-
-    // Reset state
-    setSelectedPlan(null);
-    setClientSecret('');
-    setError('');
-
-    // Reload subscription data
-    if (state.user) {
-      try {
-        const subscription = await getUserSubscription(state.user.id);
-        setUserSubscription(subscription);
-      } catch (err) {
-        console.error('Error reloading subscription:', err);
-      }
-    }
-
-    alert('Successfully upgraded to Pro plan! Welcome to PromptsGo Pro!');
-  };
-
-  const handlePaymentError = (errorMessage: string) => {
-    setError(`Payment failed: ${errorMessage}`);
-    setSelectedPlan(null);
-    setClientSecret('');
-  };
 
   const getPrice = (plan: 'free' | 'pro') => {
     if (plan === 'free') return 0;
@@ -123,7 +89,7 @@ export function SubscriptionPage({ onBack, onNavigateToBilling }: SubscriptionPa
 
   const getCurrentPlan = () => {
     if (userSubscription?.status === 'active') {
-      return userSubscription.plan_id === 'pro' ? 'pro' : 'free';
+      return userSubscription.plan === 'pro' ? 'pro' : 'free';
     }
     return state.user?.subscriptionPlan || 'free';
   };
@@ -178,17 +144,6 @@ export function SubscriptionPage({ onBack, onNavigateToBilling }: SubscriptionPa
           </Alert>
         )}
 
-        {/* Stripe Checkout Form */}
-        {clientSecret && selectedPlan && (
-          <div className="max-w-2xl mx-auto mb-8">
-            <StripeCheckout
-              clientSecret={clientSecret}
-              amount={getPrice(selectedPlan) * 100} // Convert to cents
-              onSuccess={handlePaymentSuccess}
-              onError={handlePaymentError}
-            />
-          </div>
-        )}
 
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">

@@ -100,6 +100,7 @@ CREATE TABLE prompt_images (
     mime_type TEXT NOT NULL,
     width INTEGER,
     height INTEGER,
+    caption TEXT, -- Optional caption for the image
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -257,6 +258,26 @@ CREATE TABLE affiliate_referrals (
     paid_at TIMESTAMPTZ
 );
 
+-- Create enum for invite status (before table creation)
+DO $$ BEGIN
+    CREATE TYPE invite_status AS ENUM ('pending', 'accepted', 'expired', 'revoked', 'waitlist');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- Invitees table for invite-only access
+DROP TABLE IF EXISTS invitees CASCADE;
+CREATE TABLE invitees (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    email TEXT UNIQUE,  -- Made nullable for reusable invite codes
+    invite_code TEXT UNIQUE,
+    invited_by UUID REFERENCES profiles(id),
+    status invite_status DEFAULT 'pending',
+    invited_at TIMESTAMPTZ DEFAULT NOW(),
+    accepted_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_prompts_user_id ON prompts(user_id);
 CREATE INDEX idx_prompts_category ON prompts(category);
@@ -300,6 +321,10 @@ CREATE INDEX idx_affiliates_referral_code ON affiliates(referral_code);
 
 CREATE INDEX idx_affiliate_referrals_affiliate_id ON affiliate_referrals(affiliate_id);
 CREATE INDEX idx_affiliate_referrals_referred_user_id ON affiliate_referrals(referred_user_id);
+
+CREATE INDEX idx_invitees_email ON invitees(email);
+CREATE INDEX idx_invitees_invite_code ON invitees(invite_code);
+CREATE INDEX idx_invitees_status ON invitees(status);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -362,7 +387,7 @@ BEGIN
     INSERT INTO public.profiles (id, username, email, name)
     VALUES (
         NEW.id,
-        COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
+        COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
         NEW.email,
         COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1))
     );
@@ -395,12 +420,17 @@ ALTER TABLE affiliate_referrals ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for profiles (safe to run multiple times)
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
+DROP POLICY IF EXISTS "Users can view their own profile" ON profiles;
 DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
 DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
+DROP POLICY IF EXISTS "Trigger can create profiles" ON profiles;
 
 CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
+CREATE POLICY "Users can view their own profile" ON profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can insert their own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update their own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+-- Allow the trigger to create profiles (SECURITY DEFINER bypasses this, but being explicit)
+CREATE POLICY "Trigger can create profiles" ON profiles FOR INSERT WITH CHECK (true);
 
 -- RLS Policies for prompts (safe to run multiple times)
 DROP POLICY IF EXISTS "Public prompts are viewable by everyone" ON prompts;
@@ -584,4 +614,99 @@ CREATE POLICY "Users can update their prompt images" ON storage.objects FOR UPDA
 );
 CREATE POLICY "Users can delete their prompt images" ON storage.objects FOR DELETE USING (
     bucket_id = 'prompt-images' AND auth.role() = 'authenticated'
+);
+
+-- Enable RLS for invitees
+ALTER TABLE invitees ENABLE ROW LEVEL SECURITY;
+-- Create a function to validate invite codes (bypasses RLS)
+CREATE OR REPLACE FUNCTION validate_invite_code(invite_code_param TEXT)
+RETURNS JSON AS $$
+DECLARE
+    result JSON;
+    invite_record RECORD;
+BEGIN
+    -- Check format first
+    IF invite_code_param IS NULL OR length(invite_code_param) != 8 OR NOT (invite_code_param ~ '^[A-Z0-9]+$') THEN
+        RETURN json_build_object('valid', false, 'error', 'Invalid format');
+    END IF;
+
+    -- Find the invite
+    SELECT * INTO invite_record
+    FROM invitees
+    WHERE invite_code = invite_code_param
+    AND status IN ('pending', 'accepted')
+    AND (expires_at IS NULL OR expires_at > NOW());
+
+    IF NOT FOUND THEN
+        RETURN json_build_object('valid', false, 'error', 'Invite not found or expired');
+    END IF;
+
+    -- Return success
+    RETURN json_build_object(
+        'valid', true,
+        'userId', invite_record.invited_by,
+        'email', invite_record.email,
+        'isReusable', (invite_record.email IS NULL)
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Create a function to check if email has valid invite for login (bypasses RLS)
+CREATE OR REPLACE FUNCTION check_email_invite(email_param TEXT)
+RETURNS JSON AS $$
+DECLARE
+    invite_record RECORD;
+BEGIN
+    -- Find valid invite for this email
+    SELECT * INTO invite_record
+    FROM invitees
+    WHERE email = email_param
+    AND status IN ('pending', 'accepted')
+    AND (expires_at IS NULL OR expires_at > NOW());
+
+    IF NOT FOUND THEN
+        RETURN json_build_object('valid', false, 'error', 'No valid invite found for this email');
+    END IF;
+
+    -- Return success
+    RETURN json_build_object(
+        'valid', true,
+        'invite_id', invite_record.id,
+        'status', invite_record.status
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- RLS Policies for invitees (safe to run multiple times)
+DROP POLICY IF EXISTS "Users can view their own invites" ON invitees;
+DROP POLICY IF EXISTS "Admins can manage all invites" ON invitees;
+DROP POLICY IF EXISTS "Anyone can join waitlist" ON invitees;
+DROP POLICY IF EXISTS "Users can update their own invites" ON invitees;
+
+-- Allow authenticated users to view their own invites
+CREATE POLICY "Users can view their own invites" ON invitees FOR SELECT USING (
+    auth.uid() = invited_by OR (email IS NOT NULL AND email = (SELECT email FROM auth.users WHERE id = auth.uid()))
+);
+
+-- Allow anyone to join waitlist
+CREATE POLICY "Anyone can join waitlist" ON invitees FOR INSERT WITH CHECK (
+    status = 'waitlist'
+);
+
+-- Allow users to update their own invites
+CREATE POLICY "Users can update their own invites" ON invitees FOR UPDATE USING (
+    auth.uid() = invited_by OR (email IS NOT NULL AND email = (SELECT email FROM auth.users WHERE id = auth.uid()))
+);
+
+CREATE POLICY "Users can view their own invites" ON invitees FOR SELECT USING (
+    auth.uid() = invited_by OR (email IS NOT NULL AND email = (SELECT email FROM auth.users WHERE id = auth.uid()))
+);
+CREATE POLICY "Admins can manage all invites" ON invitees FOR ALL USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND subscription_plan = 'pro')
+);
+CREATE POLICY "Anyone can join waitlist" ON invitees FOR INSERT WITH CHECK (
+    status = 'waitlist'
+);
+CREATE POLICY "Users can update their own invites" ON invitees FOR UPDATE USING (
+    auth.uid() = invited_by OR (email IS NOT NULL AND email = (SELECT email FROM auth.users WHERE id = auth.uid()))
 );

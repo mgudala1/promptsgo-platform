@@ -5,6 +5,7 @@ import { PromptCard } from "./PromptCard";
 import { useApp } from "../contexts/AppContext";
 import { ArrowRight, Sparkles, GitFork, Star, User, Package, Lock, Crown } from "lucide-react"; // cleaned imports
 import { getSubscriptionLimits, getUserSubscription, SubscriptionData } from "../lib/subscription";
+import { hearts as heartsApi, saves as savesApi } from "../lib/api";
 
 interface HomePageProps {
   onGetStarted: () => void;
@@ -67,33 +68,66 @@ export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePagePro
     .sort((a, b) => b.hearts - a.hearts)
     .slice(0, 8);
 
-  const handleHeartPrompt = (promptId: string) => {
-    if (!state.user) return;
-    const prompt = state.prompts.find(p => p.id === promptId);
-    if (!prompt) return;
+  const handleHeartPrompt = async (promptId: string) => {
+    if (!state.user) {
+      console.log('User not authenticated');
+      return;
+    }
 
-    if (prompt.isHearted) {
-      dispatch({ type: 'UNHEART_PROMPT', payload: { promptId } });
-    } else {
-      dispatch({ type: 'HEART_PROMPT', payload: { promptId } });
+    console.log('Toggling heart for prompt:', promptId, 'Current isHearted:', state.prompts.find(p => p.id === promptId)?.isHearted);
+    try {
+      const result = await heartsApi.toggle(promptId);
+      console.log('Heart result:', result);
+
+      if (!result.error) {
+        // Update global state immediately for instant visual feedback
+        if (result.action === 'added') {
+          console.log('Adding heart - updating UI');
+          dispatch({ type: 'HEART_PROMPT', payload: { promptId } });
+        } else {
+          console.log('Removing heart - updating UI');
+          dispatch({ type: 'UNHEART_PROMPT', payload: { promptId } });
+        }
+      } else {
+        console.error('Heart error:', result.error);
+      }
+    } catch (error) {
+      console.error('Heart exception:', error);
     }
   };
 
-  const handleSavePrompt = (promptId: string) => {
-    if (!state.user) return;
-    const prompt = state.prompts.find(p => p.id === promptId);
-    if (!prompt) return;
+  const handleSavePrompt = async (promptId: string) => {
+    if (!state.user) {
+      console.log('User not authenticated');
+      return;
+    }
 
-    if (prompt.isSaved) {
-      dispatch({ type: 'UNSAVE_PROMPT', payload: promptId });
-    } else {
-      // Check subscription limits
-      const userSaves = state.prompts.filter(p => p.isSaved).length;
-      if (subscriptionLimits.saves !== 'unlimited' && userSaves >= subscriptionLimits.saves) {
-        alert(`You've reached your save limit (${subscriptionLimits.saves}). Upgrade to Pro for unlimited saves!`);
-        return;
+    // Check subscription limits
+    const userSaves = state.prompts.filter(p => p.isSaved).length;
+    if (subscriptionLimits.saves !== 'unlimited' && userSaves >= subscriptionLimits.saves) {
+      alert(`You've reached your save limit (${subscriptionLimits.saves}). Upgrade to Pro for unlimited saves!`);
+      return;
+    }
+
+    console.log('Toggling save for prompt:', promptId, 'Current isSaved:', state.prompts.find(p => p.id === promptId)?.isSaved);
+    try {
+      const result = await savesApi.toggle(promptId);
+      console.log('Save result:', result);
+
+      if (!result.error) {
+        // Update global state immediately for instant visual feedback
+        if (result.action === 'added') {
+          console.log('Adding save - updating UI');
+          dispatch({ type: 'SAVE_PROMPT', payload: { promptId } });
+        } else {
+          console.log('Removing save - updating UI');
+          dispatch({ type: 'UNSAVE_PROMPT', payload: promptId });
+        }
+      } else {
+        console.error('Save error:', result.error);
       }
-      dispatch({ type: 'SAVE_PROMPT', payload: { promptId } });
+    } catch (error) {
+      console.error('Save exception:', error);
     }
   };
 

@@ -16,6 +16,7 @@ export interface User {
   saveCount: number;
   invitesRemaining: number;
   isAffiliate?: boolean;
+  isAdmin?: boolean;
 }
 
 export interface Badge {

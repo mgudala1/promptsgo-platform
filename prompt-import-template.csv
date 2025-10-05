@@ -1,0 +1,89 @@
+title,description,content,category,type,tags,model_compatibility,visibility
+Professional Email Generator,Create compelling professional emails for any situation with customizable tone and context.,"You are a professional email writing assistant with expertise in business communication.
+
+Generate a well-structured, professional email based on these requirements:
+
+**Purpose:** [Describe the email's purpose]
+**Recipient:** [Name and role if known]
+**Key Points:**
+- [Point 1]
+- [Point 2]
+- [Point 3]
+**Tone:** [Professional/Friendly/Formal/Casual]
+
+Create an email with:
+1. Compelling subject line
+2. Professional greeting
+3. Clear purpose statement
+4. Key points naturally integrated
+5. Clear call-to-action
+6. Appropriate closing
+
+Keep it concise (200-300 words) while being comprehensive.",Business,text,"business,email,communication,professional","GPT-4,Claude-3.5-Sonnet,Gemini-1.5-Pro",public
+Code Review Checklist AI,Comprehensive code review analyzing quality security performance and best practices.,"You are an expert code reviewer with deep knowledge of software engineering best practices.
+
+Review the following code:
+
+```[LANGUAGE]
+[PASTE CODE HERE]
+```
+
+Provide comprehensive analysis covering:
+
+## 1. Code Quality
+- Readability and maintainability
+- Naming conventions
+- Code structure and organization
+
+## 2. Security Analysis
+- Security vulnerabilities
+- Input validation
+- Data handling security
+
+## 3. Performance
+- Algorithmic efficiency
+- Memory usage
+- Optimization opportunities
+
+## 4. Best Practices
+- Language-specific patterns
+- Error handling
+- Testing considerations
+
+## 5. Specific Recommendations
+For each issue:
+- Problem description
+- Why it matters
+- Concrete solution with code
+- Priority (Critical/High/Medium/Low)",Development,code,"coding,review,quality,security","GPT-4,Claude-3.5-Sonnet,Codex",public
+SEO Blog Post Optimizer,Transform any topic into SEO-optimized blog content that ranks well and engages readers.,"You are an expert SEO content strategist and writer.
+
+Create an SEO-optimized blog post:
+
+**Topic:** [Your blog post topic]
+**Target Keyword:** [Primary keyword]
+**Audience:** [Who you're writing for]
+**Tone:** [Educational/Professional/Conversational]
+
+Generate:
+
+## Title Options
+3 compelling SEO-friendly titles
+
+## Meta Description
+155-character meta description
+
+## Full Content
+1000-1500 words including:
+- Attention-grabbing hook
+- Clear benefits
+- Natural keyword integration
+- Concrete examples
+- Actionable tips
+- Clear call-to-action
+
+## SEO Checklist
+- Keyword in title intro conclusion
+- LSI keywords naturally integrated
+- Short paragraphs (2-4 sentences)
+- Bullet points for scannability",Marketing,text,"seo,blogging,content,marketing","GPT-4,Claude-3.5-Sonnet",public

@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Textarea } from './ui/textarea';
-import { Input } from './ui/input';  
+import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -12,11 +12,13 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 
 import { useApp } from '../contexts/AppContext';
 import { Prompt, Comment, PromptFeedback } from '../lib/types';
+import { canSaveMore, canForkMore, getForksThisMonth } from '../lib/limits';
+import { prompts } from '../lib/api';
 import {
   ArrowLeft, BookmarkPlus, GitFork, Share,
   MessageCircle, Copy, Eye, Calendar, Edit,
   CheckCircle, AlertCircle, Heart, ThumbsUp, ThumbsDown, TrendingUp, BarChart3,
-  Image as ImageIcon, FileText
+  Image as ImageIcon, FileText, Crown
 } from 'lucide-react';
 
 interface PromptDetailPageProps {
@@ -37,13 +39,107 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
   const [feedbackNote, setFeedbackNote] = useState('');
   const [feedbackUseCase, setFeedbackUseCase] = useState('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [limitError, setLimitError] = useState<string>('');
 
   // Load prompt and comments data
   useEffect(() => {
-    const foundPrompt = state.prompts.find(p => p.id === promptId);
-    if (foundPrompt) {
-      setPrompt(foundPrompt);
-    }
+    const loadPromptData = async () => {
+      try {
+        // Try to load full prompt data from database first
+        const { data: fullPromptData, error } = await prompts.getById(promptId);
+
+        if (!error && fullPromptData) {
+          // Transform the database data to match our Prompt type
+          const fullPrompt: Prompt = {
+            id: fullPromptData.id,
+            userId: fullPromptData.user_id,
+            title: fullPromptData.title,
+            slug: fullPromptData.slug,
+            description: fullPromptData.description,
+            content: fullPromptData.content,
+            type: fullPromptData.type,
+            modelCompatibility: fullPromptData.model_compatibility,
+            tags: fullPromptData.tags,
+            visibility: fullPromptData.visibility,
+            category: fullPromptData.category,
+            language: fullPromptData.language,
+            version: fullPromptData.version,
+            parentId: fullPromptData.parent_id || undefined,
+            viewCount: fullPromptData.view_count,
+            hearts: fullPromptData.hearts,
+            saveCount: fullPromptData.save_count,
+            forkCount: fullPromptData.fork_count,
+            commentCount: fullPromptData.comment_count,
+            createdAt: fullPromptData.created_at,
+            updatedAt: fullPromptData.updated_at,
+            attachments: [],
+            author: fullPromptData.profiles ? {
+              id: fullPromptData.profiles.id,
+              username: fullPromptData.profiles.username,
+              email: fullPromptData.profiles.email || '',
+              name: fullPromptData.profiles.name,
+              bio: fullPromptData.profiles.bio || undefined,
+              website: fullPromptData.profiles.website || undefined,
+              github: fullPromptData.profiles.github || undefined,
+              twitter: fullPromptData.profiles.twitter || undefined,
+              reputation: 0,
+              createdAt: fullPromptData.profiles.created_at || fullPromptData.created_at,
+              lastLogin: fullPromptData.profiles.created_at || fullPromptData.created_at,
+              badges: [],
+              skills: [],
+              subscriptionPlan: fullPromptData.profiles.subscription_plan || 'free',
+              saveCount: 0,
+              invitesRemaining: fullPromptData.profiles.invites_remaining || 0
+            } : {
+              id: fullPromptData.user_id,
+              username: 'user',
+              email: '',
+              name: 'User',
+              reputation: 0,
+              createdAt: fullPromptData.created_at,
+              lastLogin: fullPromptData.created_at,
+              badges: [],
+              skills: [],
+              subscriptionPlan: 'free',
+              saveCount: 0,
+              invitesRemaining: 0
+            },
+            images: fullPromptData.prompt_images?.map((img: any) => ({
+              id: img.id,
+              url: img.url,
+              altText: img.alt_text,
+              isPrimary: img.is_primary,
+              size: img.size,
+              mimeType: img.mime_type,
+              width: img.width || undefined,
+              height: img.height || undefined,
+              caption: img.caption || undefined
+            })) || [],
+            isHearted: false, // Will be set by component logic
+            isSaved: false,   // Will be set by component logic
+            isForked: false,
+            template: fullPromptData.template || undefined
+          };
+
+          setPrompt(fullPrompt);
+        } else {
+          // Fallback to local state data
+          const foundPrompt = state.prompts.find(p => p.id === promptId);
+          if (foundPrompt) {
+            setPrompt(foundPrompt);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading prompt data:', err);
+        // Fallback to local state data
+        const foundPrompt = state.prompts.find(p => p.id === promptId);
+        if (foundPrompt) {
+          setPrompt(foundPrompt);
+        }
+      }
+    };
+
+    loadPromptData();
 
     const promptComments = state.comments.filter(c => c.promptId === promptId);
     setComments(promptComments);
@@ -119,20 +215,41 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
 
   const handleSave = () => {
     if (!state.user) return;
+    setLimitError('');
 
-    const isSaved = state.saves.some(s => 
+    const isSaved = state.saves.some(s =>
       s.userId === state.user!.id && s.promptId === promptId
     );
 
     if (isSaved) {
       dispatch({ type: 'UNSAVE_PROMPT', payload: promptId });
     } else {
+      // Check save limit
+      const userSaves = state.saves.filter(s => s.userId === state.user!.id);
+      const { allowed, message } = canSaveMore(state.user, userSaves.length);
+      
+      if (!allowed) {
+        setLimitError(message || 'Save limit reached');
+        return;
+      }
+      
       dispatch({ type: 'SAVE_PROMPT', payload: { promptId } });
     }
   };
 
   const handleFork = () => {
     if (!state.user) return;
+    setLimitError('');
+    
+    // Check fork limit
+    const forksThisMonth = getForksThisMonth(state.prompts, state.user.id);
+    const { allowed, message } = canForkMore(state.user, forksThisMonth);
+    
+    if (!allowed) {
+      setLimitError(message || 'Fork limit reached');
+      return;
+    }
+    
     onFork(prompt);
   };
 
@@ -249,6 +366,22 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
           </div>
         )}
       </div>
+
+      {/* Limit Error Alert */}
+      {limitError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {limitError}
+            {!state.user?.subscriptionPlan || state.user.subscriptionPlan === 'free' ? (
+              <Button variant="link" className="ml-2 p-0 h-auto" onClick={() => window.location.href = '#subscription'}>
+                <Crown className="h-3 w-3 mr-1" />
+                Upgrade to Pro
+              </Button>
+            ) : null}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Prompt Header */}
       <div className="mb-6">

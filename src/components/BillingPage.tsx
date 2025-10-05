@@ -62,18 +62,11 @@ export function BillingPage({ onBack }: BillingPageProps) {
     }
   };
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'text-green-600';
-      case 'canceled': return 'text-orange-600';
+      case 'cancelled': return 'text-orange-600';
       case 'past_due': return 'text-red-600';
       default: return 'text-gray-600';
     }
@@ -82,7 +75,7 @@ export function BillingPage({ onBack }: BillingPageProps) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'active': return <CheckCircle className="h-4 w-4" />;
-      case 'canceled': return <XCircle className="h-4 w-4" />;
+      case 'cancelled': return <XCircle className="h-4 w-4" />;
       case 'past_due': return <AlertCircle className="h-4 w-4" />;
       default: return <CreditCard className="h-4 w-4" />;
     }
@@ -150,17 +143,17 @@ export function BillingPage({ onBack }: BillingPageProps) {
                     </span>
                   </div>
                   <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
-                    {subscription.plan_id.toUpperCase()}
+                    {subscription.plan.toUpperCase()}
                   </Badge>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>Current period: {formatDate(subscription.current_period_start)} - {formatDate(subscription.current_period_end)}</span>
+                    <span>Current period: {subscription.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString() : 'N/A'} - {subscription.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString() : 'N/A'}</span>
                   </div>
 
-                  {subscription.cancel_at_period_end && (
+                  {subscription.status === 'cancelled' && (
                     <div className="flex items-center gap-2 text-orange-600">
                       <AlertCircle className="h-4 w-4" />
                       <span>Cancels at period end</span>
@@ -168,7 +161,7 @@ export function BillingPage({ onBack }: BillingPageProps) {
                   )}
                 </div>
 
-                {subscription.status === 'active' && !subscription.cancel_at_period_end && (
+                {subscription.status === 'active' && (
                   <div className="pt-4 border-t">
                     <Button
                       variant="destructive"

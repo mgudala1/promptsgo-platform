@@ -2,12 +2,12 @@ import { supabase } from './supabase';
 
 export interface SubscriptionData {
   id: string;
-  status: 'active' | 'canceled' | 'past_due' | 'incomplete';
-  current_period_start: number;
-  current_period_end: number;
-  cancel_at_period_end: boolean;
-  plan_id: string;
-  price_id: string;
+  user_id: string;
+  plan: 'free' | 'pro';
+  status: 'active' | 'cancelled' | 'past_due';
+  stripe_subscription_id?: string;
+  current_period_end?: string; // TIMESTAMPTZ as ISO string
+  created_at: string;
 }
 
 export interface PaymentIntentData {
@@ -22,7 +22,7 @@ export interface PaymentIntentData {
 export const createSubscriptionPaymentIntent = async (
   priceId: string,
   userId: string
-): Promise<PaymentIntentData> => {
+): Promise<{ sessionId: string; url: string }> => {
   try {
     const { data, error } = await supabase.functions.invoke('create-payment-intent', {
       body: {
@@ -34,16 +34,16 @@ export const createSubscriptionPaymentIntent = async (
 
     if (error) {
       console.error('Supabase function error:', error);
-      throw new Error(error.message || 'Failed to create payment intent');
+      throw new Error(error.message || 'Failed to create checkout session');
     }
 
-    if (!data?.client_secret) {
-      throw new Error('Invalid payment intent response');
+    if (!data?.sessionId || !data?.url) {
+      throw new Error('Invalid checkout session response');
     }
 
     return data;
   } catch (error) {
-    console.error('Error creating subscription payment intent:', error);
+    console.error('Error creating subscription checkout session:', error);
     throw error;
   }
 };
@@ -83,19 +83,27 @@ export const createOneTimePaymentIntent = async (
 // Get user's subscription status
 export const getUserSubscription = async (userId: string): Promise<SubscriptionData | null> => {
   try {
-    const { data, error } = await supabase
-      .from('user_subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .single();
+    // Don't query if userId is not provided (user not authenticated)
+    if (!userId) {
+      return null;
+    }
 
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('id, user_id, plan, status, stripe_subscription_id, current_period_end, created_at')
+      .eq('user_id', userId)
+      // Removed .eq('status', 'active') filter to prevent 406 error.
+      // We will filter for active status on the client side.
+      // Removed .single() to prevent hanging/406 issues.
+      // We handle the array result manually.
+    
     if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
       console.error('Error fetching subscription:', error);
       throw error;
     }
 
-    return data;
+    // Return the first element if data is an array, otherwise null
+    return data ? data[0] : null;
   } catch (error) {
     console.error('Error getting user subscription:', error);
     return null;
@@ -160,16 +168,19 @@ export const hasFeatureAccess = (
   }
 
   // Pro tier has access to all features
-  if (userSubscription.status === 'active') {
+  if (userSubscription.status === 'active' && userSubscription.plan === 'pro') {
     return true;
   }
 
-  // Grace period for canceled subscriptions (30 days)
-  const now = Math.floor(Date.now() / 1000);
-  const gracePeriodEnd = userSubscription.current_period_end + (30 * 24 * 60 * 60); // 30 days
+  // Grace period for cancelled subscriptions (30 days)
+  if (userSubscription.status === 'cancelled' && userSubscription.current_period_end) {
+    const now = new Date();
+    const periodEnd = new Date(userSubscription.current_period_end);
+    const gracePeriodEnd = new Date(periodEnd.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days in ms
 
-  if (userSubscription.status === 'canceled' && now <= gracePeriodEnd) {
-    return true;
+    if (now <= gracePeriodEnd) {
+      return true;
+    }
   }
 
   return false;
@@ -177,7 +188,7 @@ export const hasFeatureAccess = (
 
 // Get subscription limits for user
 export const getSubscriptionLimits = (userSubscription: SubscriptionData | null) => {
-  if (!userSubscription || userSubscription.status !== 'active') {
+  if (!userSubscription || userSubscription.status !== 'active' || userSubscription.plan !== 'pro') {
     return {
       saves: 10,
       forksPerMonth: 3,

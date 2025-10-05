@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { Database } from './supabase'
-import { User, Prompt, Comment, Collection, Portfolio, PromptPack, Heart, Save, Follow } from './types'
+// Removed unused imports from './types'
 
 // Type aliases for easier use
 type Tables = Database['public']['Tables']
@@ -29,7 +29,14 @@ export const auth = {
   },
 
   signOut: async () => {
-    const { error } = await supabase.auth.signOut()
+    // Use 'local' scope to remove session from current browser only
+    // This ensures the session is completely cleared from localStorage
+    const { error } = await supabase.auth.signOut({ scope: 'local' })
+    
+    // Clear any cached user data
+    localStorage.removeItem('supabase.auth.token')
+    sessionStorage.clear()
+    
     return { error }
   },
 
@@ -45,6 +52,14 @@ export const auth = {
 
   onAuthStateChange: (callback: (event: string, session: any) => void) => {
     return supabase.auth.onAuthStateChange(callback)
+  },
+
+  validateInviteCode: async (code: string) => {
+    return await invitees.validateCode(code)
+  },
+
+  trackInviteUsage: async (code: string, userId: string, email: string) => {
+    return await invitees.trackUsage(code, userId, email)
   }
 }
 
@@ -55,8 +70,10 @@ export const profiles = {
       .from('profiles')
       .select('*')
       .eq('id', id)
-      .single()
-    return { data, error }
+    // Removed .single() to prevent hanging issues when RLS is disabled or misconfigured.
+    // We handle the array result manually.
+    const profile = data ? data[0] : null;
+    return { data: profile, error }
   },
 
   update: async (id: string, updates: Partial<Tables['profiles']['Update']>) => {
@@ -148,8 +165,8 @@ export const prompts = {
         prompt_images (*)
       `)
       .eq('id', id)
-      .single()
-    return { data, error }
+    const prompt = data ? data[0] : null;
+    return { data: prompt, error }
   },
 
   getByUser: async (userId: string, limit?: number) => {
@@ -250,26 +267,50 @@ export const comments = {
   }
 }
 
+// Helper function to check if string is a valid UUID
+const isValidUUID = (str: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
 // Hearts API
 export const hearts = {
   toggle: async (promptId: string) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
-    // Check if heart exists
-    const { data: existingHeart } = await supabase
+    // For non-UUID prompts (mock data), use localStorage
+    if (!isValidUUID(promptId)) {
+      console.log('Using localStorage for heart operation on non-UUID prompt:', promptId);
+      const storageKey = `hearts_${user.id}_${promptId}`;
+      const currentlyHearted = localStorage.getItem(storageKey) === 'true';
+
+      if (currentlyHearted) {
+        localStorage.removeItem(storageKey);
+        return { error: null, action: 'removed' };
+      } else {
+        localStorage.setItem(storageKey, 'true');
+        return { error: null, action: 'added' };
+      }
+    }
+
+    // For UUID prompts, use database
+    // Check if heart exists (don't use .single() - it fails with 406 if no rows)
+    const { data: hearts } = await supabase
       .from('hearts')
-      .select('id')
+      .select('user_id, prompt_id')
       .eq('user_id', user.id)
       .eq('prompt_id', promptId)
-      .single()
+
+    const existingHeart = hearts && hearts.length > 0 ? hearts[0] : null
 
     if (existingHeart) {
-      // Remove heart
+      // Remove heart using composite key
       const { error: deleteError } = await supabase
         .from('hearts')
         .delete()
-        .eq('id', existingHeart.id)
+        .eq('user_id', user.id)
+        .eq('prompt_id', promptId)
 
       if (deleteError) return { error: deleteError }
 
@@ -299,20 +340,38 @@ export const saves = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
-    // Check if save exists
-    const { data: existingSave } = await supabase
+    // For non-UUID prompts (mock data), use localStorage
+    if (!isValidUUID(promptId)) {
+      console.log('Using localStorage for save operation on non-UUID prompt:', promptId);
+      const storageKey = `saves_${user.id}_${promptId}`;
+      const currentlySaved = localStorage.getItem(storageKey) === 'true';
+
+      if (currentlySaved) {
+        localStorage.removeItem(storageKey);
+        return { error: null, action: 'removed' };
+      } else {
+        localStorage.setItem(storageKey, 'true');
+        return { error: null, action: 'added' };
+      }
+    }
+
+    // For UUID prompts, use database
+    // Check if save exists (don't use .single() - it fails with 406 if no rows)
+    const { data: saves } = await supabase
       .from('saves')
-      .select('id')
+      .select('user_id, prompt_id')
       .eq('user_id', user.id)
       .eq('prompt_id', promptId)
-      .single()
+
+    const existingSave = saves && saves.length > 0 ? saves[0] : null
 
     if (existingSave) {
-      // Remove save
+      // Remove save using composite key
       const { error: deleteError } = await supabase
         .from('saves')
         .delete()
-        .eq('id', existingSave.id)
+        .eq('user_id', user.id)
+        .eq('prompt_id', promptId)
 
       if (deleteError) return { error: deleteError }
 
@@ -440,8 +499,8 @@ export const portfolios = {
       `)
       .eq('subdomain', subdomain)
       .eq('is_published', true)
-      .single()
-    return { data, error }
+    const portfolio = data ? data[0] : null;
+    return { data: portfolio, error }
   },
 
   create: async (portfolio: Tables['portfolios']['Insert']) => {
@@ -488,8 +547,8 @@ export const promptPacks = {
       .from('prompt_packs')
       .select('*')
       .eq('id', id)
-      .single()
-    return { data, error }
+    const pack = data ? data[0] : null;
+    return { data: pack, error }
   },
 
   getUserLibrary: async (userId: string) => {
@@ -584,5 +643,81 @@ export const templates = {
       .delete()
       .eq('id', id)
     return { error }
+  }
+}
+
+// Invitees API
+export const invitees = {
+  // Validate reusable invite code
+  validateCode: async (code: string) => {
+    const { data, error } = await supabase
+      .from('invitees')
+      .select('*')
+      .eq('invite_code', code.toUpperCase())
+      .is('email', null) // Reusable codes have no specific email
+      .single();
+
+    if (error || !data) {
+      return {
+        data: { valid: false, error: 'Invalid or expired invite code' },
+        error: null
+      };
+    }
+
+    // Check if expired
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      return {
+        data: { valid: false, error: 'This invite code has expired' },
+        error: null
+      };
+    }
+
+    // Check status
+    if (data.status === 'revoked') {
+      return {
+        data: { valid: false, error: 'This invite code has been revoked' },
+        error: null
+      };
+    }
+
+    return {
+      data: {
+        valid: true,
+        invite_id: data.id,
+        code: data.invite_code,
+        isReusable: true
+      },
+      error: null
+    };
+  },
+
+  // Track code usage (but don't mark as used since it's reusable)
+  trackUsage: async (inviteCode: string, _userId: string, userEmail: string) => {
+    // Create a usage record in invitees table
+    const { data, error } = await supabase
+      .from('invitees')
+      .insert({
+        invite_code: inviteCode,
+        email: userEmail,
+        status: 'accepted',
+        accepted_at: new Date().toISOString(),
+        invited_by: null
+      })
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  addToWaitlist: async (email: string) => {
+    const { data, error } = await supabase
+      .from('invitees')
+      .insert({
+        email: email,
+        invite_code: Math.random().toString(36).substring(2, 10).toUpperCase(),
+        status: 'waitlist'
+      })
+      .select()
+      .single();
+    return { data, error };
   }
 }

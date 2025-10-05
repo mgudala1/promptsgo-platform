@@ -79,7 +79,11 @@ export function PromptCard({
   onSave,
   onShare
 }: PromptCardProps) {
-  const categoryData = categories.find(cat => cat.id === category || cat.label === category);
+  const categoryData = categories.find(cat =>
+    cat.id === category?.toLowerCase() ||
+    cat.label?.toLowerCase() === category?.toLowerCase() ||
+    cat.name?.toLowerCase() === category?.toLowerCase()
+  );
   const primaryImage = images?.find(img => img.isPrimary) || images?.[0];
   
   return (
@@ -136,7 +140,7 @@ export function PromptCard({
 
         {/* Category Badge */}
         <div className="flex items-center gap-2">
-          {categoryData && (
+          {categoryData ? (
             <Badge
               variant="outline"
               className="text-xs"
@@ -148,7 +152,11 @@ export function PromptCard({
             >
               {categoryData.label}
             </Badge>
-          )}
+          ) : category ? (
+            <Badge variant="outline" className="text-xs">
+              {category}
+            </Badge>
+          ) : null}
         </div>
 
         {/* Stats and Actions */}

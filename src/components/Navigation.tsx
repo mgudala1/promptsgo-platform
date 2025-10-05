@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
 import { ThemeToggle } from "./ui/ThemeToggle";
 import { useApp } from "../contexts/AppContext";
-import { Search, Plus, Menu, User, Settings, LogOut, Home, Compass, BookmarkPlus, Package } from "lucide-react";
+import { auth } from "../lib/api";
+import { isAdmin } from "../lib/admin";
+import { Search, Plus, Menu, User, Settings, LogOut, Home, Compass, BookmarkPlus, Package, Shield, Upload, Users, BarChart, Eye } from "lucide-react";
 
 interface NavigationProps {
     user?: {
@@ -22,6 +24,7 @@ interface NavigationProps {
    onSavedClick?: () => void;
    onSettingsClick?: () => void;
    onIndustryPacksClick?: () => void;
+   onAdminClick?: (feature: string) => void;
 }
 
 export function Navigation({
@@ -33,9 +36,11 @@ export function Navigation({
    onHomeClick,
    onSavedClick,
    onSettingsClick,
-   onIndustryPacksClick
+   onIndustryPacksClick,
+   onAdminClick
 }: NavigationProps) {
-  const { state, dispatch } = useApp();
+   const { state, dispatch } = useApp();
+   const currentUser = state.user;
   const [searchQuery, setSearchQuery] = useState(
     typeof state.searchFilters.query === 'string' ? state.searchFilters.query : ""
   );
@@ -139,6 +144,43 @@ export function Navigation({
 
             {user ? (
               <>
+                {/* Admin Menu (Only visible to admins) */}
+                {isAdmin(currentUser) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        <span className="hidden sm:inline">Admin</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel className="flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Admin Tools
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onAdminClick?.('bulk-import')}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Bulk Import Prompts
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onAdminClick?.('ui-playground')}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        UI Playground
+                      </DropdownMenuItem>
+                      <DropdownMenuItem disabled>
+                        <Users className="mr-2 h-4 w-4" />
+                        Manage Users
+                        <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem disabled>
+                        <BarChart className="mr-2 h-4 w-4" />
+                        Platform Analytics
+                        <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+
                 {/* Create Button */}
                 <Button
                   className="flex items-center gap-2"
@@ -196,7 +238,20 @@ export function Navigation({
                       Settings
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => dispatch({ type: 'SET_USER', payload: null })}>
+                    <DropdownMenuItem onClick={async () => {
+                      try {
+                        console.log('[Navigation] Signing out user...');
+                        // First clear user state
+                        dispatch({ type: 'SET_USER', payload: null });
+                        
+                        // Then sign out from Supabase (this will trigger SIGNED_OUT event)
+                        await auth.signOut();
+                        
+                        console.log('[Navigation] Sign out complete');
+                      } catch (error) {
+                        console.error('[Navigation] Sign out error:', error);
+                      }
+                    }}>
                       <LogOut className="mr-2 h-4 w-4" />
                       Sign out
                     </DropdownMenuItem>

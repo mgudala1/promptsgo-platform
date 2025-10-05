@@ -1,0 +1,27 @@
+Generate 10 AI prompts in CSV format for my prompt marketplace platform.
+
+OUTPUT ONLY THE CSV - no explanations, no intro text, just the CSV.
+
+CSV FORMAT:
+title,description,content,category,type,tags,model_compatibility,visibility
+
+REQUIREMENTS FOR EACH ROW:
+- title: 3-6 words, clear and descriptive
+- description: One sentence explaining the prompt (10-20 words)
+- content: The actual prompt (wrap in quotes, 200-400 words, well-structured)
+- category: ONE of: Business, Development, Marketing, Data Analysis, Creative
+- type: ONE of: text, code, image
+- tags: 3-5 tags (comma-separated, NO spaces): example,tags,here
+- model_compatibility: GPT-4,Claude-3.5-Sonnet,Gemini-1.5-Pro
+- visibility: public
+
+EXAMPLE ROW:
+"Email Writer Pro","Create professional business emails with custom tone and style","You are an expert email writer. Write a professional email based on: Purpose: [describe purpose], Recipient: [name/role], Key points: [list points], Tone: [professional/casual]. Include: subject line, greeting, clear message, call-to-action, closing.","Business","text","business,email,professional","GPT-4,Claude-3.5-Sonnet","public"
+
+CREATE 10 DIVERSE PROMPTS covering:
+- 3 Business prompts (emails, meetings, reports)
+- 3 Development prompts (code, debugging, documentation)  
+- 2 Marketing prompts (content, social media)
+- 2 Creative prompts (writing, brainstorming)
+
+Start with the header row, then 10 data rows. Output ONLY the CSV.

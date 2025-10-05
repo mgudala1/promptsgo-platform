@@ -21,7 +21,11 @@ import { BillingPage } from "./components/BillingPage";
 import { InviteSystemPage } from "./components/ui/InviteSystemPage";
 import { AffiliateProgramPage } from "./components/ui/AffiliateProgramPage";
 import { AffiliateDashboard } from "./components/AffiliateDashboard";
+import { AdminBulkImport } from "./components/AdminBulkImport";
+import { UIPlayground } from "./components/UIPlayground";
 import { Prompt } from "./lib/types";
+import { isAdmin } from "./lib/admin";
+import { prompts } from "./lib/api";
 
 type Page =
   | { type: 'home' }
@@ -41,7 +45,9 @@ type Page =
   | { type: 'privacy' }
   | { type: 'invite' }
   | { type: 'affiliate' }
-  | { type: 'affiliate-dashboard' };
+  | { type: 'affiliate-dashboard' }
+  | { type: 'admin-bulk-import' }
+  | { type: 'ui-playground' };
 
 function AppContent() {
   const { state, dispatch } = useApp();
@@ -53,23 +59,6 @@ function AppContent() {
 
   const handleAuthClick = () => {
     setIsAuthModalOpen(true);
-  };
-
-  const handleAuthenticated = (userData: any) => {
-    // Convert to proper User type
-    const user = {
-      ...userData,
-      id: userData.id || `user-${Date.now()}`,
-      email: userData.email || `${userData.username}@example.com`,
-      bio: userData.bio || '',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-      badges: [],
-      skills: []
-    };
-    
-    dispatch({ type: 'SET_USER', payload: user });
-    setIsAuthModalOpen(false);
   };
 
   const handleGetStarted = () => {
@@ -88,8 +77,101 @@ function AppContent() {
     setCurrentPage({ type: 'prompt', promptId });
   };
 
-  const handleEditPrompt = (prompt: Prompt) => {
-    setCurrentPage({ type: 'create', editingPrompt: prompt });
+  const handleEditPrompt = async (prompt: Prompt) => {
+    try {
+      // Load the full prompt data including images from database
+      const { data: fullPromptData, error } = await prompts.getById(prompt.id);
+
+      if (error) {
+        console.error('Error loading full prompt data:', error);
+        // Fallback to the provided prompt data
+        setCurrentPage({ type: 'create', editingPrompt: prompt });
+        return;
+      }
+
+      if (fullPromptData) {
+        // Transform the database data to match our Prompt type
+        const fullPrompt: Prompt = {
+          id: fullPromptData.id,
+          userId: fullPromptData.user_id,
+          title: fullPromptData.title,
+          slug: fullPromptData.slug,
+          description: fullPromptData.description,
+          content: fullPromptData.content,
+          type: fullPromptData.type,
+          modelCompatibility: fullPromptData.model_compatibility,
+          tags: fullPromptData.tags,
+          visibility: fullPromptData.visibility,
+          category: fullPromptData.category,
+          language: fullPromptData.language,
+          version: fullPromptData.version,
+          parentId: fullPromptData.parent_id || undefined,
+          viewCount: fullPromptData.view_count,
+          hearts: fullPromptData.hearts,
+          saveCount: fullPromptData.save_count,
+          forkCount: fullPromptData.fork_count,
+          commentCount: fullPromptData.comment_count,
+          createdAt: fullPromptData.created_at,
+          updatedAt: fullPromptData.updated_at,
+          attachments: [],
+          author: fullPromptData.profiles ? {
+            id: fullPromptData.profiles.id,
+            username: fullPromptData.profiles.username,
+            email: fullPromptData.profiles.email || '',
+            name: fullPromptData.profiles.name,
+            bio: fullPromptData.profiles.bio || undefined,
+            website: fullPromptData.profiles.website || undefined,
+            github: fullPromptData.profiles.github || undefined,
+            twitter: fullPromptData.profiles.twitter || undefined,
+            reputation: 0,
+            createdAt: fullPromptData.profiles.created_at || fullPromptData.created_at,
+            lastLogin: fullPromptData.profiles.created_at || fullPromptData.created_at,
+            badges: [],
+            skills: [],
+            subscriptionPlan: fullPromptData.profiles.subscription_plan || 'free',
+            saveCount: 0,
+            invitesRemaining: fullPromptData.profiles.invites_remaining || 0
+          } : {
+            id: fullPromptData.user_id,
+            username: 'user',
+            email: '',
+            name: 'User',
+            reputation: 0,
+            createdAt: fullPromptData.created_at,
+            lastLogin: fullPromptData.created_at,
+            badges: [],
+            skills: [],
+            subscriptionPlan: 'free',
+            saveCount: 0,
+            invitesRemaining: 0
+          },
+          images: fullPromptData.prompt_images?.map((img: any) => ({
+            id: img.id,
+            url: img.url,
+            altText: img.alt_text,
+            isPrimary: img.is_primary,
+            size: img.size,
+            mimeType: img.mime_type,
+            width: img.width || undefined,
+            height: img.height || undefined,
+            caption: img.caption || undefined
+          })) || [],
+          isHearted: false, // Will be set by the component
+          isSaved: false,   // Will be set by the component
+          isForked: false,
+          template: fullPromptData.template || undefined
+        };
+
+        setCurrentPage({ type: 'create', editingPrompt: fullPrompt });
+      } else {
+        // Fallback to the provided prompt data
+        setCurrentPage({ type: 'create', editingPrompt: prompt });
+      }
+    } catch (err) {
+      console.error('Error in handleEditPrompt:', err);
+      // Fallback to the provided prompt data
+      setCurrentPage({ type: 'create', editingPrompt: prompt });
+    }
   };
 
   const handleForkPrompt = (originalPrompt: Prompt) => {
@@ -148,10 +230,19 @@ function AppContent() {
     setCurrentPage({ type: 'home' });
   };
 
+  const handleAdminClick = (feature: string) => {
+    if (feature === 'bulk-import') {
+      setCurrentPage({ type: 'admin-bulk-import' });
+    } else if (feature === 'ui-playground') {
+      setCurrentPage({ type: 'ui-playground' });
+    }
+    // Add more admin features here in the future
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <Navigation 
-        user={state.user} 
+      <Navigation
+        user={state.user}
         onAuthClick={handleAuthClick}
         onProfileClick={() => state.user && handleProfileClick(state.user.id)}
         onCreateClick={() => setCurrentPage({ type: 'create' })}
@@ -160,6 +251,7 @@ function AppContent() {
         onSavedClick={handleSavedClick}
         onSettingsClick={handleSettingsClick}
         onIndustryPacksClick={() => setCurrentPage({ type: 'industry-packs' })}
+        onAdminClick={handleAdminClick}
       />
       
       <main>
@@ -220,6 +312,7 @@ function AppContent() {
           <SettingsPage
             onBack={handleBack}
             onNavigateToSubscription={() => setCurrentPage({ type: 'subscription' })}
+            onNavigateToBilling={() => setCurrentPage({ type: 'billing' })}
           />
         )}
 
@@ -301,6 +394,14 @@ function AppContent() {
         {currentPage.type === 'affiliate-dashboard' && (
           <AffiliateDashboard />
         )}
+
+        {currentPage.type === 'admin-bulk-import' && isAdmin(state.user) && (
+          <AdminBulkImport />
+        )}
+
+        {currentPage.type === 'ui-playground' && isAdmin(state.user) && (
+          <UIPlayground />
+        )}
       </main>
 
       <Footer
@@ -315,7 +416,6 @@ function AppContent() {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
-        onAuthenticated={handleAuthenticated}
       />
     </div>
   );

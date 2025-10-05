@@ -5,42 +5,88 @@
   
   ## 🚀 Features
   
-  ### Core Features
+  ### Core Features (All Users)
   - **Professional Prompt Management**: Create, edit, and organize AI prompts with rich metadata
-  - **Portfolio Creation**: Build branded portfolios to showcase your best prompts to clients
-  - **Industry Packs**: Curated prompt collections for specific industries and use cases
-  - **User Authentication**: Secure authentication with email verification
-  - **Real-time Collaboration**: Live updates and notifications
+  - **User Authentication**: Secure authentication with automatic email verification
   - **Advanced Search**: Find prompts by category, tags, model compatibility, and more
-  - **Social Features**: Hearts, saves, comments, and following system
+  - **Social Features**: Hearts, comments, saves (with limits), and following system
+  - **Industry Packs**: Curated prompt collections for specific industries and use cases
   - **Responsive Design**: Beautiful UI built with React and Tailwind CSS
   
-  ### New Features (Latest Release)
+  ### Free Tier Features
+  - ✅ Create unlimited prompts
+  - ✅ Heart & comment unlimited
+  - ✅ Browse all public prompts
+  - ✅ Basic search & filters
+  - ✅ Save prompts (max 10)
+  - ✅ Fork prompts (max 3/month)
+  - ✅ View prompt analytics
+  
+  ### Pro Tier Features
+  - ✅ Everything in Free tier
+  - ✅ **Unlimited saves** and collections
+  - ✅ **Unlimited forking**
+  - ✅ **10 invites per month**
+  - ✅ **PRO badge** on profile
+  - ✅ Priority support
+  - ✅ Early access to features
+  - ✅ Export to JSON/Markdown *(coming soon)*
+  - ✅ API access *(coming soon)*
+  
+  ### Admin Features
+  - ✅ All Pro features automatically
+  - ✅ **999 invites** (unlimited)
+  - ✅ Auto-approved affiliate access
+  - ✅ 1000 reputation points
+  - ✅ Full platform testing access
+  
+  ### New Features (Latest Release - October 2025)
+  - **Major Bug Fixes & Performance Improvements** ✅ COMPLETED
+    - Fixed heart/save button visual feedback (instant color changes)
+    - Resolved category badge display issues (case-insensitive matching)
+    - Enhanced state synchronization between components
+    - Improved API error handling and user feedback
+    - Optimized prompt loading with parallel API calls
+    - Fixed TypeScript compilation errors
+
   - **Invite Friends System**: Invite-only community with limited invite codes per user
     - Free users: 5 invites per month
     - Pro users: 10 invites per month
     - Single-use codes with 30-day expiration
     - Track invite acceptance and community growth
+
   - **Affiliate Program**: Earn commissions through referrals
     - 30% recurring commission on all subscriptions
     - Tiered rewards: Bronze (30%), Silver (35%), Gold (40%)
     - Monthly payouts via Stripe Connect or PayPal
     - Affiliate dashboard with analytics and marketing materials
     - Access control: Only approved affiliates can view dashboard
+
   - **Enhanced Model Compatibility**: Auto-suggest system for AI models
     - Real-time suggestions as you type
     - Support for 14+ AI models including GPT-4o, Claude-3.5-Sonnet, Gemini-1.5-Pro
     - Custom model name support
     - Maximum 10 models per prompt
+
   - **Payment Method Management**: Complete billing dashboard
     - View and manage payment methods
     - Add new payment methods
     - Update billing address
     - Subscription management and cancellation
+
   - **Enhanced Footer**: Two-column layout with branding and organized link sections
   - **Improved Homepage**: Growth hub section promoting invite and affiliate features
-  - **Save & Share Functionality**: Fixed and enhanced prompt interaction features
-  - **TypeScript Cleanup**: Zero compilation warnings and improved code quality
+  - **Admin Bulk Import**: CSV-based prompt import system for content management
+  - **Comprehensive Content Seeding**: 72+ professional prompts ready for users
+
+  ### Current Application Status (October 2025)
+  - **✅ Production Ready**: All major bugs fixed, performance optimized
+  - **✅ 72 Professional Prompts**: Comprehensive content library across all categories
+  - **✅ Instant UI Feedback**: Heart/save buttons change colors immediately
+  - **✅ Robust Category System**: All prompt categories display correctly
+  - **✅ Enhanced Error Handling**: Graceful failure recovery and user feedback
+  - **✅ Admin Tools**: Complete bulk import and content management system
+  - **✅ TypeScript Clean**: Zero compilation errors, full type safety
   
   ## 🛠 Technology Stack
   
@@ -108,7 +154,27 @@
   3. Copy and paste the contents of `supabase-schema.sql`
   4. Run the query to create all tables, indexes, and policies
   
-  ### 4. Configure Authentication
+  ### 4. Create Invite Codes (Optional)
+  
+  If you want to enable invite codes for registration:
+  
+  1. Go to SQL Editor in Supabase
+  2. Copy and paste the contents of `create-reusable-invites.sql`
+  3. Run the query to create 20 reusable invite codes
+  
+  **Default Invite Codes:**
+  - WELCOME2024, PROMPTGO2024, AIPOWER2024, CREATOR2024, INNOVATE2024
+  - BUILDER2024, LAUNCH2024, STARTUP2024, GROWTH2024, SUCCESS2024
+  - PIONEER2024, VISIONARY2024, TECHIE2024, CODER2024, DESIGNER2024
+  - PRODUCT2024, MANAGER2024, LEADER2024, EXPERT2024, MASTER2024
+  
+  These codes:
+  - ✅ Can be used multiple times (reusable)
+  - ✅ Valid for 1 year
+  - ✅ Optional - users can sign up without a code
+  - ✅ Tracked in database for analytics
+  
+  ### 5. Configure Authentication
   
   In your Supabase dashboard:
   
@@ -117,7 +183,7 @@
   3. Enable email confirmations
   4. Customize email templates if desired
   
-  ### 5. Run the Development Server
+  ### 6. Run the Development Server
   
   ```bash
   npm run dev
@@ -157,6 +223,45 @@
   2. **Email Verification**: Supabase sends verification email automatically
   3. **Profile Creation**: User profile is created automatically on signup
   4. **Session Management**: Supabase handles session persistence and refresh
+  
+  ### Admin Users
+  
+  The application supports admin users who have elevated privileges and access to all pro features without a subscription. Admin status is granted based on email address.
+  
+  **Default Admin:**
+  - `mgoud311@gmail.com` - Has full admin access
+  
+  **Admin Benefits:**
+  - 🔓 All Pro features unlocked (no subscription required)
+  - ♾️ Unlimited invites (999 per month)
+  - ⭐ 1000 reputation points
+  - 🎯 Affiliate program access
+  - 👑 Admin-only features
+  - 💼 Full access to billing/subscription pages (for testing UI)
+  
+  **How to Access Admin Features:**
+  
+  See the complete guide: [`ADMIN_FEATURES.md`](ADMIN_FEATURES.md)
+  
+  **Quick Access:**
+  - **Billing Page:** Profile Icon → Settings → Subscription Tab → "Manage Billing & Subscription"
+  - **Affiliate Dashboard:** Footer → "Affiliate Program" → "Go to Affiliate Dashboard"
+  - **Invite System:** Footer → "Invite Friends"
+  
+  **Adding More Admins:**
+  
+  To add additional admin users, edit the `ADMIN_EMAILS` array in [`src/lib/admin.ts`](src/lib/admin.ts):
+  
+  ```typescript
+  const ADMIN_EMAILS = [
+    'mgoud311@gmail.com',
+    'another-admin@example.com'  // Add new admin emails here
+  ];
+  ```
+  
+  Admin privileges are automatically granted when these users sign in. The admin check is performed in [`src/contexts/AppContext.tsx`](src/contexts/AppContext.tsx) during authentication.
+  
+  **For detailed testing instructions and feature walkthrough, see [`ADMIN_FEATURES.md`](ADMIN_FEATURES.md).**
   
   ## 💾 Data Management
   
@@ -305,18 +410,26 @@
      - The schema creates a `prompt-images` bucket automatically
      - Configure storage policies if needed
   
-  ## 💳 Stripe Setup (Optional)
+  ## 💳 Stripe Payment Setup (Optional)
   
-  1. **Create Stripe Account**
-     - Go to [stripe.com](https://stripe.com) and create an account
+  To enable Pro subscriptions and payments, follow the detailed setup guide in [`STRIPE_SETUP.md`](STRIPE_SETUP.md).
   
-  2. **Get API Keys**
-     - Go to Developers > API keys
-     - Copy your publishable key
+  **Quick Summary:**
+  1. Create Stripe account and products
+  2. Add Stripe API keys to environment variables
+  3. Deploy Supabase Edge Functions
+  4. Configure webhooks
+  5. Test with Stripe test cards
   
-  3. **Configure Webhooks** (for production)
-     - Set up webhook endpoints for subscription events
-     - Handle events in your backend
+  **Edge Functions Included:**
+  - ✅ `create-payment-intent` - Handle subscription checkout
+  - ✅ `cancel-subscription` - Cancel user subscriptions
+  - ✅ `update-subscription` - Change subscription plans
+  - ✅ `stripe-webhook` - Sync subscription status with database
+  
+  **Admin Note:** As an admin (`mgoud311@gmail.com`), you automatically have Pro features without needing to set up payments.
+  
+  See [`STRIPE_SETUP.md`](STRIPE_SETUP.md) for complete step-by-step instructions.
   
   ## � Migration from Local Storage
   

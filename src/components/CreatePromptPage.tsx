@@ -11,7 +11,8 @@ import { useApp } from '../contexts/AppContext';
 import { Prompt, PromptImage, Draft } from '../lib/types';
 import { ImageUpload } from './ImageUpload';
 import { categories, models } from '../lib/data';
-import { prompts } from '../lib/api';
+import { prompts, storage } from '../lib/api';
+import { supabase } from '../lib/supabase';
 import { ArrowLeft, Save, Eye, FileText, Image, Code, Bot, Link2, Plus, X, Settings, PenTool, Camera, Hash, Cog, Share2 } from 'lucide-react';
 
 interface CreatePromptPageProps {
@@ -177,27 +178,50 @@ export function CreatePromptPage({ onBack, editingPrompt, onPublish }: CreatePro
 
       // Try Supabase first, fallback to local state if it fails
       let success = false;
+      let promptId = editingPrompt?.id;
 
       try {
+        console.log('💾 Attempting to save prompt...');
+        console.log('📝 Prompt data:', promptData);
+
         if (editingPrompt) {
+          console.log('🔄 Updating existing prompt:', editingPrompt.id);
           // Update existing prompt
           const { data: updatedPrompt, error } = await prompts.update(editingPrompt.id, promptData);
+          console.log('📤 Update result:', { data: updatedPrompt, error });
+
           if (!error && updatedPrompt) {
-            dispatch({ type: 'UPDATE_PROMPT', payload: { id: editingPrompt.id, updates: updatedPrompt } });
+            promptId = updatedPrompt.id;
             success = true;
+            console.log('✅ Prompt update successful, ID:', promptId);
+          } else {
+            console.error('❌ Prompt update failed:', error);
           }
         } else {
+          console.log('➕ Creating new prompt');
           // Create new prompt
           const { data: newPrompt, error } = await prompts.create(promptData);
+          console.log('📤 Create result:', { data: newPrompt, error });
+
           if (!error && newPrompt) {
-            dispatch({ type: 'ADD_PROMPT', payload: newPrompt });
+            promptId = newPrompt.id;
             success = true;
+            console.log('✅ Prompt creation successful, ID:', promptId);
+          } else {
+            console.error('❌ Prompt creation failed:', error);
           }
+        }
+
+        // Handle images if we have a prompt ID and Supabase worked
+        if (success && promptId) {
+          console.log('🖼️ Starting image updates for prompt:', promptId);
+          await handleImageUpdates(promptId);
+        } else {
+          console.log('🚫 Skipping image updates - success:', success, 'promptId:', promptId);
         }
       } catch (apiError) {
         console.warn('Supabase API not available, using local state:', apiError);
       }
-
 
       // Fallback to local state management if Supabase fails
       if (!success) {
@@ -250,6 +274,120 @@ export function CreatePromptPage({ onBack, editingPrompt, onPublish }: CreatePro
     } catch (err) {
       console.error('Error publishing prompt:', err);
       setErrors({ submit: 'An unexpected error occurred. Please try again.' });
+    }
+  };
+
+  // Handle image updates for Supabase
+  const handleImageUpdates = async (promptId: string) => {
+    console.log('🔄 Starting image updates for prompt:', promptId);
+    console.log('📸 Current images in state:', images);
+
+    try {
+      // Get existing images for this prompt
+      const { data: existingImages, error: fetchError } = await supabase
+        .from('prompt_images')
+        .select('*')
+        .eq('prompt_id', promptId);
+
+      if (fetchError) {
+        console.error('❌ Error fetching existing images:', fetchError);
+        return;
+      }
+
+      console.log('📊 Existing images in DB:', existingImages);
+
+      const existingImageUrls = new Set(existingImages?.map((img: any) => img.url) || []);
+      console.log('🔗 Existing image URLs:', Array.from(existingImageUrls));
+
+      // Images to add (new images not in existing)
+      const imagesToAdd = images.filter(img => !existingImageUrls.has(img.url));
+      console.log('➕ Images to add:', imagesToAdd.length, imagesToAdd);
+
+      // Images to update (existing images with changes) - match by URL
+      const imagesToUpdate = images.filter(img => existingImageUrls.has(img.url));
+      console.log('🔄 Images to update:', imagesToUpdate.length, imagesToUpdate);
+
+      // Images to remove (existing images not in current images)
+      const imagesToRemove = existingImages?.filter((img: any) => !images.some(currImg => currImg.url === img.url)) || [];
+      console.log('🗑️ Images to remove:', imagesToRemove.length, imagesToRemove);
+
+      // Add new images
+      for (const image of imagesToAdd) {
+        console.log('📤 Inserting image:', image.url);
+        const { data, error } = await supabase
+          .from('prompt_images')
+          .insert({
+            prompt_id: promptId,
+            url: image.url,
+            alt_text: image.altText,
+            is_primary: image.isPrimary,
+            size: image.size,
+            mime_type: image.mimeType,
+            width: image.width,
+            height: image.height,
+            caption: image.caption
+          })
+          .select();
+
+        if (error) {
+          console.error('❌ Error adding image:', error);
+        } else {
+          console.log('✅ Successfully added image:', data);
+        }
+      }
+
+      // Update existing images
+      for (const image of imagesToUpdate) {
+        console.log('🔄 Updating image:', image.url);
+        const { error } = await supabase
+          .from('prompt_images')
+          .update({
+            alt_text: image.altText,
+            is_primary: image.isPrimary,
+            caption: image.caption
+          })
+          .eq('url', image.url)
+          .eq('prompt_id', promptId); // Ensure we only update images for this prompt
+
+        if (error) {
+          console.error('❌ Error updating image:', error);
+        } else {
+          console.log('✅ Successfully updated image');
+        }
+      }
+
+      // Remove deleted images
+      for (const image of imagesToRemove) {
+        // Delete from database
+        const { error: dbError } = await supabase
+          .from('prompt_images')
+          .delete()
+          .eq('id', image.id);
+
+        if (dbError) {
+          console.error('Error removing image from database:', dbError);
+        }
+
+        // Try to delete from storage (optional, as storage cleanup can be done separately)
+        try {
+          const path = image.url.split('/').pop();
+          if (path) {
+            await storage.deleteImage('prompt-images', [path]);
+          }
+        } catch (storageError) {
+          console.warn('Could not delete image from storage:', storageError);
+        }
+      }
+
+      console.log('🎉 Image updates completed successfully!');
+      console.log('📊 Final status:', {
+        added: imagesToAdd.length,
+        updated: imagesToUpdate.length,
+        removed: imagesToRemove.length,
+        total: images.length
+      });
+    } catch (error) {
+      console.error('❌ Error handling image updates:', error);
     }
   };
 
