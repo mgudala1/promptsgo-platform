@@ -6,12 +6,11 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Switch } from './ui/switch';
-import { Separator } from './ui/separator';
 import { PromptCard } from './PromptCard';
 import { useApp } from '../contexts/AppContext';
 import { Portfolio, Prompt } from '../lib/types';
 import {
-  ArrowLeft, Eye, Lock, Globe, ExternalLink, Copy,
+  ArrowLeft, Lock, Globe, Copy,
   Plus, Trash2, Edit, Save, X, Settings, Share2
 } from 'lucide-react';
 

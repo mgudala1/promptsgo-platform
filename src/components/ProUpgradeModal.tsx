@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { Card, CardContent } from './ui/card'
-import { Check, Crown, Zap, Users, BarChart3, Shield, Star, X } from 'lucide-react'
+import { Check, Crown, Zap, Users, BarChart3, Shield, Star } from 'lucide-react'
 import { ProfessionalButton } from './ui/ProfessionalButton'
 
 interface ProUpgradeModalProps {
@@ -102,7 +102,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
 
   const triggerMessage = getTriggerMessage()
 
-  const handleUpgrade = (plan: string) => {
+  const handleUpgrade = () => {
     // In a real app, this would integrate with Stripe
     // For now, just close the modal
     onClose()
@@ -209,7 +209,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
           </Button>
           <ProfessionalButton
             gradient
-            onClick={() => handleUpgrade(selectedPlan)}
+            onClick={handleUpgrade}
             className="px-8"
           >
             Upgrade to {selectedPlan}

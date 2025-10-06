@@ -584,7 +584,7 @@ export function UserProfilePage({
               {(() => {
                 return (
                   <FolderManagement
-                    onFolderSelect={(folderId) => {
+                    onFolderSelect={() => {
                       // Could navigate to a folder view page in the future
                     }}
                   />

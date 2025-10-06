@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { PromptCard } from './PromptCard';
 import { useApp } from '../contexts/AppContext';
 import { Prompt } from '../lib/types';
-import { ArrowLeft, BookmarkPlus, Heart, GitFork } from 'lucide-react';
+import { ArrowLeft, BookmarkPlus, Heart } from 'lucide-react';
 
 interface SavedPromptsPageProps {
   onBack: () => void;

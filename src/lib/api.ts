@@ -628,12 +628,6 @@ export const comments = {
   }
 }
 
-// Helper function to check if string is a valid UUID
-const isValidUUID = (str: string): boolean => {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(str);
-}
-
 // Hearts API
 export const hearts = {
   toggle: async (promptId: string): Promise<{ data: { action: 'added' | 'removed' } | null; error: string | null }> => {

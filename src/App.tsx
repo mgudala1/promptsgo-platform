@@ -389,7 +389,6 @@ function AppContent() {
         {currentPage.type === 'version-history' && (
           <VersionHistory
             promptId={currentPage.promptId}
-            currentUserId={state.user?.id || ''}
             onVersionRestored={() => {
               // Handle version restoration - could refresh the prompt data
             }}

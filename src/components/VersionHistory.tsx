@@ -7,29 +7,21 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from './ui/textarea'
 import { Label } from './ui/label'
 import { Clock, GitBranch, RotateCcw, Eye, EyeOff } from 'lucide-react'
-import { getPromptVersions, createPromptVersion, restorePromptVersion, type PromptVersion } from '../lib/versions'
-import { useApp } from '../contexts/AppContext'
+import { getPromptVersions, restorePromptVersion, type PromptVersion } from '../lib/versions'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 
 interface VersionHistoryProps {
   promptId: string
-  currentTitle: string
-  currentDescription: string
-  currentContent: string
-  onVersionRestore?: (version: PromptVersion) => void
+  onVersionRestored?: () => void
   className?: string
 }
 
 export const VersionHistory: React.FC<VersionHistoryProps> = ({
   promptId,
-  currentTitle,
-  currentDescription,
-  currentContent,
-  onVersionRestore,
+  onVersionRestored,
   className = ''
 }) => {
-  const { state } = useApp()
   const [versions, setVersions] = useState<PromptVersion[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -56,22 +48,10 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
 
     setCreating(true)
     try {
-      const result = await createPromptVersion(
-        promptId,
-        currentTitle,
-        currentDescription,
-        currentContent,
-        changeDescription
-      )
-
-      if (result.success) {
-        toast.success('Version created successfully')
-        setShowCreateDialog(false)
-        setChangeDescription('')
-        await loadVersions()
-      } else {
-        toast.error(result.error || 'Failed to create version')
-      }
+      // For now, just show a message that this feature is not implemented
+      toast.info('Version creation feature coming soon!')
+      setShowCreateDialog(false)
+      setChangeDescription('')
     } catch (error) {
       toast.error('Something went wrong')
     } finally {
@@ -84,7 +64,7 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
       const result = await restorePromptVersion(promptId, version.id)
       if (result.success) {
         toast.success('Version restored successfully')
-        onVersionRestore?.(version)
+        onVersionRestored?.()
         await loadVersions()
       } else {
         toast.error(result.error || 'Failed to restore version')

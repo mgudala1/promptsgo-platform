@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
-import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
-import { Copy, Eye, EyeOff, RotateCcw } from 'lucide-react'
+import { Copy, RotateCcw } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import {
   extractTemplateVariables,
@@ -29,7 +28,6 @@ export const TemplateVariablesForm: React.FC<TemplateVariablesFormProps> = ({
 }) => {
   const [variables, setVariables] = useState<TemplateVariable[]>([])
   const [templateData, setTemplateData] = useState<TemplateData>({})
-  const [showPreview, setShowPreview] = useState(false)
   const [activeTab, setActiveTab] = useState('variables')
 
   useEffect(() => {

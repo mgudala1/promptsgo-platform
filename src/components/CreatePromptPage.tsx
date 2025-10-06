@@ -293,7 +293,7 @@ export function CreatePromptPage({ onBack, editingPrompt, onPublish }: CreatePro
 
       // Add new images
       for (const image of imagesToAdd) {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('prompt_images')
           .insert({
             prompt_id: promptId,

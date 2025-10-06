@@ -300,17 +300,3 @@ export const PromptCard: React.FC<PromptCardProps> = ({
     </ProfessionalCard>
   )
 }
-
-// Helper function for category colors
-const getCategoryColor = (category: string) => {
-  const colors: Record<string, string> = {
-    writing: 'bg-blue-100 text-blue-700',
-    coding: 'bg-green-100 text-green-700',
-    marketing: 'bg-purple-100 text-purple-700',
-    business: 'bg-orange-100 text-orange-700',
-    creative: 'bg-pink-100 text-pink-700',
-    technical: 'bg-gray-100 text-gray-700',
-    education: 'bg-indigo-100 text-indigo-700',
-  }
-  return colors[category?.toLowerCase()] || 'bg-gray-100 text-gray-700'
-}

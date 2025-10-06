@@ -3,10 +3,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
-import { Crown, Star, Zap, Lock, CheckCircle, X } from 'lucide-react'
+import { Crown, Star, Zap, Lock, CheckCircle } from 'lucide-react'
 import { conversionTriggers, checkFeatureLimit, trackUserAction, FREE_PLAN_LIMITS } from '../lib/conversionTriggers'
 import { useApp } from '../contexts/AppContext'
-import { toast } from 'sonner'
 
 interface ConversionTriggersProps {
   trigger?: 'save_limit' | 'heart_limit' | 'fork_limit' | 'template_limit' | 'private_limit' | 'export_limit'
