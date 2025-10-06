@@ -401,7 +401,6 @@ export function UserProfilePage({
                   id={prompt.id}
                   title={prompt.title}
                   description={prompt.description}
-                  content={prompt.content}
                   author={{
                     name: prompt.author.name,
                     username: prompt.author.username,
@@ -462,7 +461,6 @@ export function UserProfilePage({
                       id={prompt.id}
                       title={prompt.title}
                       description={prompt.description}
-                      content={prompt.content}
                       author={{
                         name: prompt.author.name,
                         username: prompt.author.username,
@@ -521,7 +519,6 @@ export function UserProfilePage({
                       id={prompt.id}
                       title={prompt.title}
                       description={prompt.description}
-                      content={prompt.content}
                       author={{
                         name: prompt.author.name,
                         username: prompt.author.username,
@@ -538,7 +535,7 @@ export function UserProfilePage({
                       isSaved={prompt.isSaved}
                       isHearted={prompt.isHearted}
                       createdAt={prompt.createdAt}
-                      parentAuthor={prompt.parentId ?
+                      parentAuthor={prompt.parentId ? 
                         state.prompts.find(p => p.id === prompt.parentId)?.author : undefined
                       }
                       onClick={() => onPromptClick(prompt.id)}

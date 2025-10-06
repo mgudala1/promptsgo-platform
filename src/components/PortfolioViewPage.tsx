@@ -329,7 +329,6 @@ export function PortfolioViewPage({ portfolioId, onBack, onPromptClick }: Portfo
                   id={prompt.id}
                   title={prompt.title}
                   description={prompt.description}
-                  content={prompt.content}
                   author={{
                     name: prompt.author.name,
                     username: prompt.author.username,

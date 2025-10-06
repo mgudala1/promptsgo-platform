@@ -498,7 +498,6 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
                     id={prompt.id}
                     title={prompt.title}
                     description={prompt.description}
-                    content={prompt.content}
                     author={prompt.author}
                     category={prompt.category}
                     tags={prompt.tags}

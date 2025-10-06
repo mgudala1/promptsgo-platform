@@ -7,13 +7,11 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { Heart, Bookmark, Eye, ExternalLink, Zap } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { cn } from './ui/utils'
-import { extractTemplateVariables } from '../lib/templateVariables'
 
 interface PromptCardProps {
   id: string;
   title: string;
   description: string;
-  content?: string;
   author: {
     name: string;
     username: string;
@@ -46,7 +44,6 @@ export const PromptCard: React.FC<PromptCardProps> = ({
   id,
   title,
   description,
-  content,
   author,
   category,
   tags,
@@ -66,7 +63,7 @@ export const PromptCard: React.FC<PromptCardProps> = ({
   const [saved, setSaved] = useState(isSaved)
   const [isHovered, setIsHovered] = useState(false)
 
-  const hasVariables = content ? extractTemplateVariables(content).length > 0 : false
+  const hasVariables = false // This would need to be calculated from content if available
 
   return (
     <ProfessionalCard

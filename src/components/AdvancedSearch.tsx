@@ -466,7 +466,6 @@ export function AdvancedSearch({ onPromptClick, initialQuery }: AdvancedSearchPr
                   id={prompt.id}
                   title={prompt.title}
                   description={prompt.description}
-                  content={prompt.content}
                   author={prompt.author}
                   category={prompt.category}
                   tags={prompt.tags}

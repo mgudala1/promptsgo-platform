@@ -159,7 +159,6 @@ export function FavoritesAndRecents({ onPromptClick }: FavoritesAndRecentsProps)
                       id={prompt.id}
                       title={prompt.title}
                       description={prompt.description}
-                      content={prompt.content}
                       author={prompt.author}
                       category={prompt.category}
                       tags={prompt.tags}
@@ -278,7 +277,6 @@ export function FavoritesAndRecents({ onPromptClick }: FavoritesAndRecentsProps)
                     id={prompt.id}
                     title={prompt.title}
                     description={prompt.description}
-                    content={prompt.content}
                     author={prompt.author}
                     category={prompt.category}
                     tags={prompt.tags}
