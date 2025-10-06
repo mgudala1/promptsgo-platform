@@ -7,38 +7,38 @@ import { ThemeToggle } from "./ui/ThemeToggle";
 import { useApp } from "../contexts/AppContext";
 import { auth } from "../lib/api";
 import { isAdmin } from "../lib/admin";
-import { Search, Plus, Menu, User, Settings, LogOut, Home, Compass, BookmarkPlus, Package, Shield, Upload, Users, BarChart, Eye } from "lucide-react";
+import { Search, Plus, Menu, User, Settings, LogOut, Home, Compass, BookmarkPlus, Package, Shield, Upload, Eye } from "lucide-react";
 
 interface NavigationProps {
-    user?: {
-      name: string;
-      username: string;
-      reputation: number;
-      subscriptionPlan?: 'free' | 'pro';
-    } | null;
-   onAuthClick: () => void;
-   onProfileClick?: () => void;
-   onCreateClick?: () => void;
-   onExploreClick?: (searchQuery?: string) => void;
-   onHomeClick?: () => void;
-   onSavedClick?: () => void;
-   onSettingsClick?: () => void;
-   onIndustryPacksClick?: () => void;
-   onAdminClick?: (feature: string) => void;
-}
+      user?: {
+        name: string;
+        username: string;
+        reputation: number;
+        subscriptionPlan?: 'free' | 'pro';
+      } | null;
+    onAuthClick: () => void;
+    onProfileClick?: () => void;
+    onCreateClick?: () => void;
+    onExploreClick?: (searchQuery?: string) => void;
+    onHomeClick?: () => void;
+    onSavedClick?: () => void;
+    onSettingsClick?: () => void;
+    onIndustryPacksClick?: () => void;
+    onAdminClick?: (feature: string) => void;
+  }
 
 export function Navigation({
-   user,
-   onAuthClick,
-   onProfileClick,
-   onCreateClick,
-   onExploreClick,
-   onHomeClick,
-   onSavedClick,
-   onSettingsClick,
-   onIndustryPacksClick,
-   onAdminClick
-}: NavigationProps) {
+    user,
+    onAuthClick,
+    onProfileClick,
+    onCreateClick,
+    onExploreClick,
+    onHomeClick,
+    onSavedClick,
+    onSettingsClick,
+    onIndustryPacksClick,
+    onAdminClick
+  }: NavigationProps) {
    const { state, dispatch } = useApp();
    const currentUser = state.user;
   const [searchQuery, setSearchQuery] = useState(
@@ -64,32 +64,34 @@ export function Navigation({
           {/* Logo */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">P</span>
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center font-bold text-sm text-primary-foreground">
+                P
               </div>
-              <span className="font-bold text-xl">PromptsGo</span>
+              <span className="font-bold text-xl text-foreground">
+                PromptsGo
+              </span>
             </div>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-6">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="flex items-center gap-2"
                 onClick={onHomeClick}
               >
                 <Home className="h-4 w-4" />
                 Home
               </Button>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="flex items-center gap-2"
                 onClick={onExploreClick}
               >
                 <Compass className="h-4 w-4" />
                 Explore
               </Button>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="flex items-center gap-2"
                 onClick={onIndustryPacksClick}
               >
@@ -159,6 +161,11 @@ export function Navigation({
                         Admin Tools
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onAdminClick?.('dashboard')}>
+                        <Shield className="mr-2 h-4 w-4" />
+                        Admin Dashboard
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => onAdminClick?.('bulk-import')}>
                         <Upload className="mr-2 h-4 w-4" />
                         Bulk Import Prompts
@@ -167,24 +174,14 @@ export function Navigation({
                         <Eye className="mr-2 h-4 w-4" />
                         UI Playground
                       </DropdownMenuItem>
-                      <DropdownMenuItem disabled>
-                        <Users className="mr-2 h-4 w-4" />
-                        Manage Users
-                        <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem disabled>
-                        <BarChart className="mr-2 h-4 w-4" />
-                        Platform Analytics
-                        <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
-                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
 
                 {/* Create Button */}
                 <Button
-                  className="flex items-center gap-2"
                   onClick={onCreateClick}
+                  className="flex items-center gap-2"
                 >
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">Create</span>
@@ -243,10 +240,10 @@ export function Navigation({
                         console.log('[Navigation] Signing out user...');
                         // First clear user state
                         dispatch({ type: 'SET_USER', payload: null });
-                        
+
                         // Then sign out from Supabase (this will trigger SIGNED_OUT event)
                         await auth.signOut();
-                        
+
                         console.log('[Navigation] Sign out complete');
                       } catch (error) {
                         console.error('[Navigation] Sign out error:', error);

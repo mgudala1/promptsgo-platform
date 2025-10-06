@@ -88,15 +88,51 @@ export function canAccessAffiliate(user: User | null): { allowed: boolean; messa
   if (!user) {
     return { allowed: false, message: 'Please sign in to access affiliate program' };
   }
-  
+
   if (isAdmin(user) || user.isAffiliate) {
     return { allowed: true };
   }
-  
+
   return {
     allowed: false,
     message: 'You need to be an approved affiliate to access this dashboard'
   };
+}
+
+/**
+ * Check if user can create and manage lists/folders
+ */
+export function canAccessListsAndFolders(user: User | null): { allowed: boolean; message?: string } {
+  if (!user) {
+    return { allowed: false, message: 'Please sign in to access lists and folders' };
+  }
+
+  if (isAdmin(user) || hasProFeatures(user)) {
+    return { allowed: true };
+  }
+
+  return {
+    allowed: false,
+    message: 'Lists and folders are Pro features. Upgrade to organize your prompts!'
+  };
+}
+
+/**
+ * Get list/folder limit based on user's subscription
+ */
+export function getListLimit(user: User | null): number | 'unlimited' {
+  if (!user) return 0;
+  if (isAdmin(user) || hasProFeatures(user)) return 'unlimited';
+  return 0; // Free tier has no access
+}
+
+/**
+ * Get folder limit based on user's subscription
+ */
+export function getFolderLimit(user: User | null): number | 'unlimited' {
+  if (!user) return 0;
+  if (isAdmin(user) || hasProFeatures(user)) return 'unlimited';
+  return 0; // Free tier has no access
 }
 
 /**

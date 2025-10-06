@@ -13,6 +13,7 @@ import { ImageUpload } from './ImageUpload';
 import { categories, models } from '../lib/data';
 import { prompts, storage } from '../lib/api';
 import { supabase } from '../lib/supabase';
+import { TemplateVariablesForm } from './TemplateVariablesForm';
 import { ArrowLeft, Save, Eye, FileText, Image, Code, Bot, Link2, Plus, X, Settings, PenTool, Camera, Hash, Cog, Share2 } from 'lucide-react';
 
 interface CreatePromptPageProps {
@@ -588,6 +589,15 @@ export function CreatePromptPage({ onBack, editingPrompt, onPublish }: CreatePro
                     </div>
                   </div>
 
+                  {/* Template Variables Form - only show if content has variables */}
+                  {content.includes('{{') && content.includes('}}') && (
+                    <div className="mt-6">
+                      <TemplateVariablesForm
+                        content={content}
+                        onContentChange={setContent}
+                      />
+                    </div>
+                  )}
 
                 </CardContent>
               </Card>

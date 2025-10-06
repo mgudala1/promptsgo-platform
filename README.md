@@ -30,6 +30,7 @@
   - ✅ **PRO badge** on profile
   - ✅ Priority support
   - ✅ Early access to features
+  - ✅ **My Lists & Folders**: Organize saved prompts into custom lists and folders
   - ✅ Export to JSON/Markdown *(coming soon)*
   - ✅ API access *(coming soon)*
   

@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { PromptCard } from "./PromptCard";
+import { ProfessionalHero } from "./ui/ProfessionalHero";
 import { useApp } from "../contexts/AppContext";
-import { ArrowRight, Sparkles, GitFork, Star, User, Package, Lock, Crown } from "lucide-react"; // cleaned imports
-import { getSubscriptionLimits, getUserSubscription, SubscriptionData } from "../lib/subscription";
+import { ArrowRight, GitFork, Star, User, Package, Lock, Crown } from "lucide-react"; // cleaned imports
+import { getSubscriptionLimits, getUserSubscription } from "../lib/subscription";
 import { hearts as heartsApi, saves as savesApi } from "../lib/api";
 
 interface HomePageProps {
-  onGetStarted: () => void;
   onExplore: () => void;
   onPromptClick: (promptId: string) => void;
 }
@@ -24,9 +24,8 @@ const categories = [
   { id: 'technical', name: 'Technical' }
 ];
 
-export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePageProps) {
+export function HomePage({ onExplore, onPromptClick }: HomePageProps) {
   const { state, dispatch } = useApp();
-  const [userSubscription, setUserSubscription] = useState<SubscriptionData | null>(null);
   const [subscriptionLimits, setSubscriptionLimits] = useState(getSubscriptionLimits(null));
 
   // Load user's subscription
@@ -35,7 +34,6 @@ export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePagePro
       if (state.user) {
         try {
           const subscription = await getUserSubscription(state.user.id);
-          setUserSubscription(subscription);
           setSubscriptionLimits(getSubscriptionLimits(subscription));
         } catch (err) {
           console.error('Error loading subscription:', err);
@@ -133,121 +131,69 @@ export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePagePro
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <section className="relative py-12 px-4">
-        <div className="container mx-auto text-center max-w-4xl">
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <Badge variant="secondary" className="px-3 py-1">
-              <Sparkles className="h-3 w-3 mr-1" />
-              New: Client-Ready Portfolio System
-            </Badge>
-          </div>
-          
-          <h1 className="text-5xl lg:text-6xl mb-6 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Share, Discover, and Showcase the Best AI Prompts
-          </h1>
-
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            PromptsGo is the professional home for prompt engineers, freelancers, and AI enthusiasts. 
-            Organize your prompts, collaborate with the community, and showcase your expertise in client-ready portfolios.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-            <Button size="lg" onClick={onExplore} className="text-lg px-8">
-              Explore Prompts
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <Button size="lg" variant="outline" onClick={onGetStarted} className="text-lg px-8">
-              Create Free Account
-            </Button>
-          </div>
-
-          {/* Subscription Status */}
-          {state.user && (
-            <div className="flex items-center justify-center gap-2 mb-4">
-              {userSubscription?.status === 'active' ? (
-                <Badge className="bg-gradient-to-r from-primary to-primary/80">
-                  <Crown className="h-3 w-3 mr-1" />
-                  Pro Member
-                </Badge>
-              ) : (
-                <Badge variant="secondary">
-                  Free Plan
-                </Badge>
-              )}
-              <span className="text-xs text-muted-foreground">
-                {subscriptionLimits.saves === 'unlimited'
-                  ? 'Unlimited saves'
-                  : `${subscriptionLimits.saves} saves remaining`
-                }
-              </span>
-            </div>
-          )}
-
-          <p className="text-sm text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Join a growing community of AI professionals sharing their best work.
-          </p>
-        </div>
-      </section>
+      {/* Professional Hero Section */}
+      <ProfessionalHero />
 
       {/* Category Filters */}
-      <section className="py-8 px-4 border-b">
-        <div className="container mx-auto">
-          <div className="flex flex-wrap items-center justify-center gap-3">
+      <section className="py-12 px-6 border-b bg-muted/30">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-semibold mb-2">Explore by Category</h2>
+            <p className="text-muted-foreground">Find prompts tailored to your industry and needs</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-4 max-w-4xl mx-auto">
             <Button
               variant={state.searchFilters.categories.length === 0 ? "default" : "outline"}
               onClick={() => dispatch({ type: 'SET_SEARCH_FILTERS', payload: { categories: [] } })}
-              className="rounded-full"
+              className="rounded-full px-6 py-2 text-sm font-medium"
+              size="lg"
             >
               All Categories
             </Button>
             {categories.map((category) => (
-               <Button
-                 key={category.id}
-                 variant={state.searchFilters.categories.includes(category.name) ? "default" : "outline"}
-                 onClick={() => {
-                   const newCategories = state.searchFilters.categories.includes(category.name)
-                     ? state.searchFilters.categories.filter(c => c !== category.name)
-                     : [...state.searchFilters.categories, category.name];
-                   dispatch({ type: 'SET_SEARCH_FILTERS', payload: { categories: newCategories } });
-                 }}
-                 className="rounded-full"
-               >
-                 {category.name}
-               </Button>
-             ))}
+                <Button
+                  key={category.id}
+                  variant={state.searchFilters.categories.includes(category.name) ? "default" : "outline"}
+                  onClick={() => {
+                    const newCategories = state.searchFilters.categories.includes(category.name)
+                      ? state.searchFilters.categories.filter(c => c !== category.name)
+                      : [...state.searchFilters.categories, category.name];
+                    dispatch({ type: 'SET_SEARCH_FILTERS', payload: { categories: newCategories } });
+                  }}
+                  className="rounded-full px-6 py-2 text-sm font-medium"
+                  size="lg"
+                >
+                  {category.name}
+                </Button>
+              ))}
           </div>
         </div>
       </section>
 
       {/* Trending Section */}
-      <section className="py-12 px-4">
-        <div className="container mx-auto">
-          <div className="flex items-center justify-between mb-8">
+      <section className="py-16 px-6">
+        <div className="container mx-auto max-w-7xl">
+          <div className="flex items-center justify-between mb-12">
             <div>
-              <h2 className="text-3xl mb-2">Featured Portfolios</h2>
-              <p className="text-muted-foreground">
+              <h2 className="text-3xl font-bold mb-3">Featured Portfolios</h2>
+              <p className="text-muted-foreground text-lg">
                 Top-performing prompts from professional portfolios
               </p>
             </div>
-            <Button variant="outline" onClick={onExplore}>
+            <Button variant="outline" onClick={onExplore} size="lg" className="px-6">
               View All
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {trendingPrompts.map((prompt) => (
               <PromptCard
                 key={prompt.id}
                 id={prompt.id}
                 title={prompt.title}
                 description={prompt.description}
-                author={{
-                  name: prompt.author.name,
-                  username: prompt.author.username,
-                  subscriptionPlan: prompt.author.subscriptionPlan
-                }}
+                author={prompt.author}
                 category={prompt.category}
                 tags={prompt.tags}
                 images={prompt.images}
@@ -259,9 +205,7 @@ export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePagePro
                 isSaved={prompt.isSaved}
                 isHearted={prompt.isHearted}
                 createdAt={prompt.createdAt}
-                parentAuthor={prompt.parentId ? 
-                  state.prompts.find(p => p.id === prompt.parentId)?.author : undefined
-                }
+                className="cursor-pointer hover:shadow-lg transition-shadow duration-200"
                 onClick={() => onPromptClick(prompt.id)}
                 onHeart={() => handleHeartPrompt(prompt.id)}
                 onSave={() => handleSavePrompt(prompt.id)}
@@ -288,68 +232,68 @@ export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePagePro
       </section>
 
       {/* Features */}
-      <section className="py-12 px-4 bg-muted/50 mb-32">
-        <div className="container mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl mb-4">Professional Features</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+      <section className="py-20 px-6 bg-muted/50 mb-32">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold mb-4">Professional Features</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
               Everything you need to showcase your AI expertise and grow your business
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Fork & Remix */}
-            <div className="bg-card p-6 rounded-lg border">
-              <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                <GitFork className="h-5 w-5 text-primary" />
+            <div className="bg-card p-8 rounded-xl border shadow-sm hover:shadow-md transition-shadow">
+              <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6">
+                <GitFork className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-lg mb-2">Fork & Remix</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="text-xl font-semibold mb-3">Fork & Remix</h3>
+              <p className="text-muted-foreground leading-relaxed">
                 Improve prompts with full attribution and version control
               </p>
             </div>
 
             {/* Save & Share */}
-            <div className="bg-card p-6 rounded-lg border relative">
-              <div className="absolute top-4 right-4">
-                <Badge variant="secondary" className="text-xs">
+            <div className="bg-card p-8 rounded-xl border shadow-sm hover:shadow-md transition-shadow relative">
+              <div className="absolute top-6 right-6">
+                <Badge variant="secondary" className="text-xs px-2 py-1">
                   <Lock className="h-3 w-3 mr-1" />
                   Pro
                 </Badge>
               </div>
-              <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                <Star className="h-5 w-5 text-primary" />
+              <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6">
+                <Star className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-lg mb-2">Unlimited Saves & Collections</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="text-xl font-semibold mb-3">Unlimited Saves & Collections</h3>
+              <p className="text-muted-foreground leading-relaxed">
                 Keep unlimited personal libraries of favorites and share collections with clients
               </p>
             </div>
 
             {/* Profiles & Portfolios */}
-            <div className="bg-card p-6 rounded-lg border">
-              <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                <User className="h-5 w-5 text-primary" />
+            <div className="bg-card p-8 rounded-xl border shadow-sm hover:shadow-md transition-shadow">
+              <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6">
+                <User className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-lg mb-2">Profiles & Portfolios</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="text-xl font-semibold mb-3">Profiles & Portfolios</h3>
+              <p className="text-muted-foreground leading-relaxed">
                 Build your reputation and showcase your work professionally
               </p>
             </div>
 
             {/* Curated Packs */}
-            <div className="bg-card p-6 rounded-lg border relative">
-              <div className="absolute top-4 right-4">
-                <Badge variant="secondary" className="text-xs">
+            <div className="bg-card p-8 rounded-xl border shadow-sm hover:shadow-md transition-shadow relative">
+              <div className="absolute top-6 right-6">
+                <Badge variant="secondary" className="text-xs px-2 py-1">
                   <Crown className="h-3 w-3 mr-1" />
                   Pro
                 </Badge>
               </div>
-              <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                <Package className="h-5 w-5 text-primary" />
+              <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6">
+                <Package className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-lg mb-2">Premium Industry Packs</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="text-xl font-semibold mb-3">Premium Industry Packs</h3>
+              <p className="text-muted-foreground leading-relaxed">
                 Access exclusive, professionally curated prompt packs for your industry
               </p>
             </div>
