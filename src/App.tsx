@@ -197,12 +197,13 @@ function AppContent() {
     if (!state.user) return;
 
     // Create a forked version
+    const forkId = crypto.randomUUID();
     const forkedPrompt: Prompt = {
       ...originalPrompt,
-      id: `prompt-${Date.now()}`,
+      id: forkId,
       userId: state.user.id,
       title: `Fork of ${originalPrompt.title}`,
-      slug: `fork-of-${originalPrompt.slug}-${Date.now()}`,
+      slug: `fork-of-${originalPrompt.slug}-${forkId}`,
       parentId: originalPrompt.id,
       version: '1.0.0',
       viewCount: 0,
