@@ -57,23 +57,6 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
                 .select('prompt_id')
                 .eq('user_id', state.user.id);
               userSaves = savesData?.map((s: any) => s.prompt_id) || [];
-
-              // Load localStorage hearts/saves for non-UUID prompts
-              const localStorageKeys = Object.keys(localStorage);
-              localStorageKeys.forEach(key => {
-                if (key.startsWith(`hearts_${state.user!.id}_`)) {
-                  const promptId = key.replace(`hearts_${state.user!.id}_`, '');
-                  if (localStorage.getItem(key) === 'true') {
-                    userHearts.push(promptId);
-                  }
-                }
-                if (key.startsWith(`saves_${state.user!.id}_`)) {
-                  const promptId = key.replace(`saves_${state.user!.id}_`, '');
-                  if (localStorage.getItem(key) === 'true') {
-                    userSaves.push(promptId);
-                  }
-                }
-              });
             } catch (err) {
               console.warn('Failed to load user hearts/saves:', err);
             }
@@ -148,17 +131,8 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
             isForked: false
           }));
 
-          // Merge with mock prompts
-          const mockPrompts = state.prompts.filter(p => ['1', '2', '3', '4'].includes(p.id));
-          const merged = [
-            ...transformedPrompts,
-            ...mockPrompts.filter(mock =>
-              !transformedPrompts.some(db => db.slug === mock.slug)
-            )
-          ];
-
-          setPrompts(merged);
-          dispatch({ type: 'SET_PROMPTS', payload: merged });
+          setPrompts(transformedPrompts);
+          dispatch({ type: 'SET_PROMPTS', payload: transformedPrompts });
         }
         setLoading(false); // Set loading to false after successful load
       } catch (err) {
