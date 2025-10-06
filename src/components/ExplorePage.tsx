@@ -9,7 +9,7 @@ import { prompts as promptsApi, hearts as heartsApi, saves as savesApi } from ".
 import { supabase } from "../lib/supabase";
 import { Prompt, SearchFilters } from "../lib/types";
 import { getSubscriptionLimits, getUserSubscription } from "../lib/subscription";
-import { Filter, Grid3X3, List, X } from "lucide-react";
+import { Filter, Grid3X3, List, X, RefreshCw } from "lucide-react";
 
 interface ExplorePageProps {
   onBack: () => void;
@@ -28,120 +28,123 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [error, setError] = useState<string | null>(null);
   const [subscriptionLimits, setSubscriptionLimits] = useState(getSubscriptionLimits(null));
 
   // Use global search filters from context
   const filters = state.searchFilters;
 
   // Load database prompts with user hearts/saves
-  useEffect(() => {
-    const loadPrompts = async () => {
-      try {
-        const { data, error } = await promptsApi.getAll();
-        if (!error && data) {
-          // Load user's hearts and saves
-          let userHearts: string[] = [];
-          let userSaves: string[] = [];
+  const loadPrompts = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await promptsApi.getAll();
+      if (!error && data) {
+        // Load user's hearts and saves
+        let userHearts: string[] = [];
+        let userSaves: string[] = [];
 
-          if (state.user) {
-            try {
-              // Load database hearts/saves for UUID prompts
-              const { data: heartsData } = await supabase
-                .from('hearts')
-                .select('prompt_id')
-                .eq('user_id', state.user.id);
-              userHearts = heartsData?.map((h: any) => h.prompt_id) || [];
+        if (state.user) {
+          try {
+            // Load database hearts/saves for UUID prompts
+            const { data: heartsData } = await supabase
+              .from('hearts')
+              .select('prompt_id')
+              .eq('user_id', state.user.id);
+            userHearts = heartsData?.map((h: any) => h.prompt_id) || [];
 
-              const { data: savesData } = await supabase
-                .from('saves')
-                .select('prompt_id')
-                .eq('user_id', state.user.id);
-              userSaves = savesData?.map((s: any) => s.prompt_id) || [];
-            } catch (err) {
-              console.warn('Failed to load user hearts/saves:', err);
-            }
+            const { data: savesData } = await supabase
+              .from('saves')
+              .select('prompt_id')
+              .eq('user_id', state.user.id);
+            userSaves = savesData?.map((s: any) => s.prompt_id) || [];
+          } catch (err) {
+            console.warn('Failed to load user hearts/saves:', err);
           }
-
-          const transformedPrompts: Prompt[] = data.map(item => ({
-            id: item.id,
-            userId: item.user_id,
-            title: item.title,
-            slug: item.slug,
-            description: item.description,
-            content: item.content,
-            type: item.type,
-            modelCompatibility: item.model_compatibility,
-            tags: item.tags,
-            visibility: item.visibility,
-            category: item.category,
-            language: item.language,
-            version: item.version,
-            parentId: item.parent_id || undefined,
-            viewCount: item.view_count,
-            hearts: item.hearts,
-            saveCount: item.save_count,
-            forkCount: item.fork_count,
-            commentCount: item.comment_count,
-            createdAt: item.created_at,
-            updatedAt: item.updated_at,
-            attachments: [],
-            author: item.profiles ? {
-              id: item.profiles.id,
-              username: item.profiles.username,
-              email: item.profiles.email || '',
-              name: item.profiles.name,
-              bio: item.profiles.bio || undefined,
-              website: item.profiles.website || undefined,
-              github: item.profiles.github || undefined,
-              twitter: item.profiles.twitter || undefined,
-              reputation: 0,
-              createdAt: item.profiles.created_at || item.created_at,
-              lastLogin: item.profiles.created_at || item.created_at,
-              badges: [],
-              skills: [],
-              subscriptionPlan: item.profiles.subscription_plan || 'free',
-              saveCount: 0,
-              invitesRemaining: item.profiles.invites_remaining || 0
-            } : {
-              id: item.user_id,
-              username: 'user',
-              email: '',
-              name: 'User',
-              reputation: 0,
-              createdAt: item.created_at,
-              lastLogin: item.created_at,
-              badges: [],
-              skills: [],
-              subscriptionPlan: 'free',
-              saveCount: 0,
-              invitesRemaining: 0
-            },
-            images: item.prompt_images?.map((img: any) => ({
-              id: img.id,
-              url: img.url,
-              altText: img.alt_text,
-              isPrimary: img.is_primary,
-              size: img.size,
-              mimeType: img.mime_type,
-              width: img.width || undefined,
-              height: img.height || undefined
-            })) || [],
-            isHearted: userHearts.includes(item.id),
-            isSaved: userSaves.includes(item.id),
-            isForked: false
-          }));
-
-          setPrompts(transformedPrompts);
-          dispatch({ type: 'SET_PROMPTS', payload: transformedPrompts });
         }
-        setLoading(false); // Set loading to false after successful load
-      } catch (err) {
-        console.error('Error loading prompts:', err);
-        setPrompts(state.prompts);
-        setLoading(false); // Set loading to false even on error
-      }
-    };
 
+        const transformedPrompts: Prompt[] = data.map(item => ({
+          id: item.id,
+          userId: item.user_id,
+          title: item.title,
+          slug: item.slug,
+          description: item.description,
+          content: item.content,
+          type: item.type,
+          modelCompatibility: item.model_compatibility,
+          tags: item.tags,
+          visibility: item.visibility,
+          category: item.category,
+          language: item.language,
+          version: item.version,
+          parentId: item.parent_id || undefined,
+          viewCount: item.view_count,
+          hearts: item.hearts,
+          saveCount: item.save_count,
+          forkCount: item.fork_count,
+          commentCount: item.comment_count,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+          attachments: [],
+          author: item.profiles ? {
+            id: item.profiles.id,
+            username: item.profiles.username,
+            email: item.profiles.email || '',
+            name: item.profiles.name,
+            bio: item.profiles.bio || undefined,
+            website: item.profiles.website || undefined,
+            github: item.profiles.github || undefined,
+            twitter: item.profiles.twitter || undefined,
+            reputation: 0,
+            createdAt: item.profiles.created_at || item.created_at,
+            lastLogin: item.profiles.created_at || item.created_at,
+            badges: [],
+            skills: [],
+            subscriptionPlan: item.profiles.subscription_plan || 'free',
+            saveCount: 0,
+            invitesRemaining: item.profiles.invites_remaining || 0
+          } : {
+            id: item.user_id,
+            username: 'user',
+            email: '',
+            name: 'User',
+            reputation: 0,
+            createdAt: item.created_at,
+            lastLogin: item.created_at,
+            badges: [],
+            skills: [],
+            subscriptionPlan: 'free',
+            saveCount: 0,
+            invitesRemaining: 0
+          },
+          images: item.prompt_images?.map((img: any) => ({
+            id: img.id,
+            url: img.url,
+            altText: img.alt_text,
+            isPrimary: img.is_primary,
+            size: img.size,
+            mimeType: img.mime_type,
+            width: img.width || undefined,
+            height: img.height || undefined
+          })) || [],
+          isHearted: userHearts.includes(item.id),
+          isSaved: userSaves.includes(item.id),
+          isForked: false
+        }));
+
+        setPrompts(transformedPrompts);
+        dispatch({ type: 'SET_PROMPTS', payload: transformedPrompts });
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error('Error loading prompts:', err);
+      setError('Failed to load prompts. Please check your connection and try again.');
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadPrompts();
   }, [state.user]); // Re-run when user changes (login/logout)
 
@@ -162,6 +165,10 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
 
     loadSubscription();
   }, [state.user]);
+
+  const retryLoad = () => {
+    loadPrompts();
+  };
 
   // Initialize search query from prop
   useEffect(() => {
@@ -341,6 +348,24 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
           <div className="text-center py-16">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground text-lg">Loading prompts...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-6 py-8 max-w-7xl">
+          <div className="text-center py-16">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold mb-4">Oops! Something went wrong</h2>
+            <p className="text-muted-foreground text-lg mb-6">{error}</p>
+            <Button onClick={retryLoad} size="lg" className="px-8">
+              <RefreshCw className="h-5 w-5 mr-2" />
+              Try Again
+            </Button>
           </div>
         </div>
       </div>
