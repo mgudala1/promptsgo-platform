@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
 import { PromptCard } from "./PromptCard";
 import { ProfessionalHero } from "./ui/ProfessionalHero";
 import { useApp } from "../contexts/AppContext";
-import { ArrowRight, GitFork, Star, User, Package, Lock, Crown } from "lucide-react"; // cleaned imports
+import { ArrowRight, GitFork, Star, User, Package } from "lucide-react"; // cleaned imports
 import { getSubscriptionLimits, getUserSubscription } from "../lib/subscription";
 import { hearts as heartsApi, saves as savesApi } from "../lib/api";
 
@@ -245,13 +244,7 @@ export function HomePage({ onExplore, onPromptClick }: HomePageProps) {
             </div>
 
             {/* Save & Share */}
-            <div className="bg-card p-8 rounded-xl border shadow-sm hover:shadow-md transition-shadow relative">
-              <div className="absolute top-6 right-6">
-                <Badge variant="secondary" className="text-xs px-2 py-1">
-                  <Lock className="h-3 w-3 mr-1" />
-                  Pro
-                </Badge>
-              </div>
+            <div className="bg-card p-8 rounded-xl border shadow-sm hover:shadow-md transition-shadow">
               <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6">
                 <Star className="h-6 w-6 text-primary" />
               </div>
@@ -273,13 +266,7 @@ export function HomePage({ onExplore, onPromptClick }: HomePageProps) {
             </div>
 
             {/* Curated Packs */}
-            <div className="bg-card p-8 rounded-xl border shadow-sm hover:shadow-md transition-shadow relative">
-              <div className="absolute top-6 right-6">
-                <Badge variant="secondary" className="text-xs px-2 py-1">
-                  <Crown className="h-3 w-3 mr-1" />
-                  Pro
-                </Badge>
-              </div>
+            <div className="bg-card p-8 rounded-xl border shadow-sm hover:shadow-md transition-shadow">
               <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6">
                 <Package className="h-6 w-6 text-primary" />
               </div>
