@@ -84,10 +84,18 @@ export const profiles = {
       .from('profiles')
       .select('*')
       .eq('id', id)
-    // Removed .single() to prevent hanging issues when RLS is disabled or misconfigured.
-    // We handle the array result manually.
-    const profile = data ? data[0] : null;
-    return { data: profile, error }
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No profile found
+        return { data: null, error: null }
+      }
+      // For multiple records or other errors, return the error
+      return { data: null, error }
+    }
+
+    return { data, error: null }
   },
 
   update: async (id: string, updates: Partial<Tables['profiles']['Update']>) => {
@@ -179,8 +187,18 @@ export const prompts = {
         prompt_images (*)
       `)
       .eq('id', id)
-    const prompt = data ? data[0] : null;
-    return { data: prompt, error }
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No prompt found
+        return { data: null, error: null }
+      }
+      // For multiple records or other errors, return the error
+      return { data: null, error }
+    }
+
+    return { data, error: null }
   },
 
   getByUser: async (userId: string, limit?: number) => {
@@ -842,8 +860,18 @@ export const portfolios = {
       `)
       .eq('subdomain', subdomain)
       .eq('is_published', true)
-    const portfolio = data ? data[0] : null;
-    return { data: portfolio, error }
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No portfolio found
+        return { data: null, error: null }
+      }
+      // For multiple records or other errors, return the error
+      return { data: null, error }
+    }
+
+    return { data, error: null }
   },
 
   create: async (portfolio: Tables['portfolios']['Insert']) => {
@@ -890,8 +918,18 @@ export const promptPacks = {
       .from('prompt_packs')
       .select('*')
       .eq('id', id)
-    const pack = data ? data[0] : null;
-    return { data: pack, error }
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No pack found
+        return { data: null, error: null }
+      }
+      // For multiple records or other errors, return the error
+      return { data: null, error }
+    }
+
+    return { data, error: null }
   },
 
   getUserLibrary: async (userId: string) => {

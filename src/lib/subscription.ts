@@ -92,18 +92,20 @@ export const getUserSubscription = async (userId: string): Promise<SubscriptionD
       .from('subscriptions')
       .select('id, user_id, plan, status, stripe_subscription_id, current_period_end, created_at')
       .eq('user_id', userId)
-      // Removed .eq('status', 'active') filter to prevent 406 error.
-      // We will filter for active status on the client side.
-      // Removed .single() to prevent hanging/406 issues.
-      // We handle the array result manually.
-    
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No subscription found
+        return null;
+      }
       console.error('Error fetching subscription:', error);
       throw error;
     }
 
-    // Return the first element if data is an array, otherwise null
-    return data ? data[0] : null;
+    return data;
   } catch (error) {
     console.error('Error getting user subscription:', error);
     return null;
