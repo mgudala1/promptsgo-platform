@@ -194,7 +194,7 @@ export const getSubscriptionLimits = (userSubscription: SubscriptionData | null)
     return {
       saves: 10,
       forksPerMonth: 3,
-      invitesPerMonth: 0,
+      invitesPerMonth: 5,
       exportCollections: false,
       apiAccess: false
     };
@@ -204,7 +204,7 @@ export const getSubscriptionLimits = (userSubscription: SubscriptionData | null)
   return {
     saves: 'unlimited' as const,
     forksPerMonth: 'unlimited' as const,
-    invitesPerMonth: 3,
+    invitesPerMonth: 10,
     exportCollections: true,
     apiAccess: true
   };

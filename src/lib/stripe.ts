@@ -25,16 +25,16 @@ export const PRICING_PLANS = {
       '✓ Basic search & filters',
       '✓ Fork prompts (3 per month)',
       '✓ Save prompts (10 max)',
+      '✓ 5 invites per month',
       '✗ Advanced search filters',
       '✗ Unlimited saves & forks',
       '✗ Priority support',
-      '✗ Invite friends',
       '✗ Export collections'
     ],
     limits: {
       saves: 10,
       forksPerMonth: 3,
-      invitesPerMonth: 0,
+      invitesPerMonth: 5,
       exportCollections: false
     }
   },
@@ -58,14 +58,14 @@ export const PRICING_PLANS = {
       '✓ Priority support',
       '✓ Early access to features',
       '✓ Pro badge on profile',
-      '✓ 3 invites per month',
+      '✓ 10 invites per month',
       '✓ API access (coming soon)',
       '✓ Private team workspace (coming soon)'
     ],
     limits: {
       saves: 'unlimited',
       forksPerMonth: 'unlimited',
-      invitesPerMonth: 3,
+      invitesPerMonth: 10,
       exportCollections: true,
       apiAccess: true
     }
