@@ -46,16 +46,14 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         return;
       }
 
-      console.log("[AuthModal] Attempting sign in for:", email);
       const { data, error: signInError } = await auth.signIn(email, password);
-      
+
       if (signInError) {
         console.error("[AuthModal] Sign in error:", signInError);
         throw signInError;
       }
 
       if (data.user) {
-        console.log("[AuthModal] Sign in successful");
         // Let AppContext handle the profile creation
         handleClose();
       }
@@ -85,28 +83,24 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
       // Validate invite code if provided
       if (inviteCode.trim()) {
-        console.log("[AuthModal] Validating invite code:", inviteCode);
         const { data: validation } = await auth.validateInviteCode(inviteCode.trim().toUpperCase());
-        
+
         if (!validation || !validation.valid) {
           setError(validation?.error || "Invalid invite code. Leave blank to sign up without one.");
           return;
         }
-        console.log("[AuthModal] Invite code validated successfully");
       }
 
-      console.log("[AuthModal] Attempting sign up for:", email);
       const username = email.split('@')[0];
       const { data, error: signUpError } = await auth.signUp(email, password, username);
-      
+
       if (signUpError) {
         console.error("[AuthModal] Sign up error:", signUpError);
         throw signUpError;
       }
 
       if (data.user) {
-        console.log("[AuthModal] Sign up successful");
-        
+
         // Track invite code usage if provided
         if (inviteCode.trim()) {
           try {
@@ -115,10 +109,10 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             console.warn("[AuthModal] Failed to track invite usage:", trackError);
           }
         }
-        
+
         setError("");
         setSuccessMessage("Account created! Please check your email to verify your account.");
-        
+
         // Close modal after 2 seconds
         setTimeout(() => {
           handleClose();

@@ -237,14 +237,11 @@ export function Navigation({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={async () => {
                       try {
-                        console.log('[Navigation] Signing out user...');
                         // First clear user state
                         dispatch({ type: 'SET_USER', payload: null });
 
                         // Then sign out from Supabase (this will trigger SIGNED_OUT event)
                         await auth.signOut();
-
-                        console.log('[Navigation] Sign out complete');
                       } catch (error) {
                         console.error('[Navigation] Sign out error:', error);
                       }

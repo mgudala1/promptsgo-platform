@@ -104,7 +104,6 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
 
   const handleUpgrade = (plan: string) => {
     // In a real app, this would integrate with Stripe
-    console.log(`Upgrading to ${plan} plan`)
     // For now, just close the modal
     onClose()
   }

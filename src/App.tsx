@@ -65,9 +65,6 @@ function AppContent() {
   const [isProUpgradeModalOpen, setIsProUpgradeModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState<Page>({ type: 'home' });
 
-  // Simple test to see if React is working
-  console.log('AppContent rendering, state:', state);
-
   // Show welcome modal for new users
   useEffect(() => {
     if (state.user) {
@@ -394,7 +391,6 @@ function AppContent() {
             currentUserId={state.user?.id || ''}
             onVersionRestored={() => {
               // Handle version restoration - could refresh the prompt data
-              console.log('Version restored successfully');
             }}
           />
         )}

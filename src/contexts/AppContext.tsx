@@ -551,12 +551,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
 
       try {
-        console.log("[AppContext] Checking for existing session...");
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if (session?.user && mounted) {
-          console.log("[AppContext] Found existing session for user:", session.user.email);
-          
           // Create basic user from session
           const user: User = {
             id: session.user.id,
@@ -575,20 +572,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             isAdmin: false,
             isAffiliate: false
           };
-          
+
           // Check and apply admin privileges
           if (isAdmin(user)) {
-            console.log("[AppContext] ⭐ Admin user detected - granting pro features");
             user.subscriptionPlan = 'pro';
             user.reputation = 1000;
             user.invitesRemaining = getInviteLimit(user);
             user.isAdmin = true;
             user.isAffiliate = true;
           }
-          
+
           dispatch({ type: 'SET_USER', payload: user });
-        } else {
-          console.log("[AppContext] No existing session found");
         }
       } catch (err) {
         console.error('[AppContext] Error getting initial session:', err);
@@ -601,12 +595,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
-        
-        console.log(`[AppContext] Auth state changed: ${event}`);
 
         if (event === 'SIGNED_IN' && session?.user) {
-          console.log("[AppContext] User signed in:", session.user.email);
-          
           // Create basic user from session
           const user: User = {
             id: session.user.id,
@@ -625,23 +615,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             isAdmin: false,
             isAffiliate: false
           };
-          
+
           // Check and apply admin privileges
           if (isAdmin(user)) {
-            console.log("[AppContext] ⭐ Admin user detected - granting pro features");
             user.subscriptionPlan = 'pro';
             user.reputation = 1000;
             user.invitesRemaining = getInviteLimit(user);
             user.isAdmin = true;
             user.isAffiliate = true;
           }
-          
+
           dispatch({ type: 'SET_USER', payload: user });
         }
         else if (event === 'SIGNED_OUT') {
-          console.log("[AppContext] User signed out - clearing state");
           dispatch({ type: 'SET_USER', payload: null });
-          
+
           // Clear Supabase session data from localStorage
           try {
             Object.keys(localStorage).forEach(key => {

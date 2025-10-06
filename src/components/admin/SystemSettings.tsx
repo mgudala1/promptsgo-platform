@@ -66,7 +66,6 @@ export function SystemSettings() {
       setLoading(true);
       // In a real implementation, this would load from a settings table
       // For now, using default values
-      console.log('Loading system settings...');
     } catch (error) {
       console.error('Failed to load settings:', error);
       toast.error('Failed to load settings');

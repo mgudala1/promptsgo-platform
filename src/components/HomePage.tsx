@@ -68,22 +68,17 @@ export function HomePage({ onExplore, onPromptClick }: HomePageProps) {
 
   const handleHeartPrompt = async (promptId: string) => {
     if (!state.user) {
-      console.log('User not authenticated');
       return;
     }
 
-    console.log('Toggling heart for prompt:', promptId, 'Current isHearted:', state.prompts.find(p => p.id === promptId)?.isHearted);
     try {
       const result = await heartsApi.toggle(promptId);
-      console.log('Heart result:', result);
 
       if (!result.error) {
         // Update global state immediately for instant visual feedback
         if (result.action === 'added') {
-          console.log('Adding heart - updating UI');
           dispatch({ type: 'HEART_PROMPT', payload: { promptId } });
         } else {
-          console.log('Removing heart - updating UI');
           dispatch({ type: 'UNHEART_PROMPT', payload: { promptId } });
         }
       } else {
@@ -96,7 +91,6 @@ export function HomePage({ onExplore, onPromptClick }: HomePageProps) {
 
   const handleSavePrompt = async (promptId: string) => {
     if (!state.user) {
-      console.log('User not authenticated');
       return;
     }
 
@@ -107,18 +101,14 @@ export function HomePage({ onExplore, onPromptClick }: HomePageProps) {
       return;
     }
 
-    console.log('Toggling save for prompt:', promptId, 'Current isSaved:', state.prompts.find(p => p.id === promptId)?.isSaved);
     try {
       const result = await savesApi.toggle(promptId);
-      console.log('Save result:', result);
 
       if (!result.error) {
         // Update global state immediately for instant visual feedback
         if (result.action === 'added') {
-          console.log('Adding save - updating UI');
           dispatch({ type: 'SAVE_PROMPT', payload: { promptId } });
         } else {
-          console.log('Removing save - updating UI');
           dispatch({ type: 'UNSAVE_PROMPT', payload: promptId });
         }
       } else {

@@ -573,19 +573,16 @@ export function UserProfilePage({
 
             <TabsContent value="lists" className="space-y-6">
               {(() => {
-                console.log('[UserProfilePage] My Lists tab accessed');
                 return <FavoritesAndRecents onPromptClick={onPromptClick} />;
               })()}
             </TabsContent>
 
             <TabsContent value="folders" className="space-y-6">
               {(() => {
-                console.log('[UserProfilePage] Folders tab accessed');
                 return (
                   <FolderManagement
                     onFolderSelect={(folderId) => {
                       // Could navigate to a folder view page in the future
-                      console.log('Selected folder:', folderId);
                     }}
                   />
                 );
