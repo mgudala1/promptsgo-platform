@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { User, Prompt, Comment, Heart, Save, Follow, Collection, Notification, Draft, SearchFilters, Portfolio, PromptPack, PromptFeedback, DigestSettings, UserPackLibrary } from '../lib/types';
 import { prompts, comments, promptFeedbacks, promptPacks } from '../lib/data';
+import { prompts as promptsAPI } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { isAdmin, getInviteLimit } from '../lib/admin';
 
@@ -650,9 +651,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Set up real-time subscriptions - disabled for now to prevent errors
-  // TODO: Re-enable once database is properly set up
-  /*
+  // Set up real-time subscriptions
   useEffect(() => {
     if (!state.user) return;
 
@@ -810,7 +809,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.warn('Error setting up real-time subscriptions:', err);
     }
   }, [state.user]);
-  */
 
 
   return (
