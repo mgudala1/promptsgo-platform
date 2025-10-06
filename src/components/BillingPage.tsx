@@ -21,12 +21,12 @@ export function BillingPage({ onBack }: BillingPageProps) {
   useEffect(() => {
     const loadSubscription = async () => {
       if (state.user) {
-        try {
-          const sub = await getUserSubscription(state.user.id);
-          setSubscription(sub);
-        } catch (err) {
-          console.error('Error loading subscription:', err);
+        const result = await getUserSubscription(state.user.id);
+        if (result.error) {
+          console.error('Error loading subscription:', result.error);
           setError('Failed to load subscription details');
+        } else {
+          setSubscription(result.data);
         }
       }
     };
@@ -46,13 +46,21 @@ export function BillingPage({ onBack }: BillingPageProps) {
     setSuccess('');
 
     try {
-      await cancelSubscription(subscription.id);
-      setSuccess('Subscription cancelled successfully. You will retain Pro access until the end of your billing period.');
+      const cancelResult = await cancelSubscription(subscription.id);
+      if (cancelResult.error) {
+        setError(cancelResult.error);
+      } else {
+        setSuccess('Subscription cancelled successfully. You will retain Pro access until the end of your billing period.');
 
-      // Reload subscription data
-      if (state.user) {
-        const updatedSub = await getUserSubscription(state.user.id);
-        setSubscription(updatedSub);
+        // Reload subscription data
+        if (state.user) {
+          const result = await getUserSubscription(state.user.id);
+          if (result.error) {
+            console.error('Error reloading subscription:', result.error);
+          } else {
+            setSubscription(result.data);
+          }
+        }
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to cancel subscription';

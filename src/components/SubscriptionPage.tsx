@@ -28,11 +28,11 @@ export function SubscriptionPage({ onBack, onNavigateToBilling }: SubscriptionPa
   useEffect(() => {
     const loadSubscription = async () => {
       if (state.user) {
-        try {
-          const subscription = await getUserSubscription(state.user.id);
-          setUserSubscription(subscription);
-        } catch (err) {
-          console.error('Error loading subscription:', err);
+        const result = await getUserSubscription(state.user.id);
+        if (result.error) {
+          console.error('Error loading subscription:', result.error);
+        } else {
+          setUserSubscription(result.data);
         }
       }
     };
@@ -63,14 +63,24 @@ export function SubscriptionPage({ onBack, onNavigateToBilling }: SubscriptionPa
         : PRICING_PLANS.pro.stripePriceId?.monthly;
 
       if (!priceId) {
-        throw new Error('Price ID not configured for selected plan');
+        setError('Price ID not configured for selected plan');
+        setSelectedPlan(null);
+        return;
       }
 
-      const checkoutSession = await createSubscriptionPaymentIntent(priceId, state.user.id);
-      // Redirect to Stripe Checkout
-      window.location.href = checkoutSession.url;
+      const result = await createSubscriptionPaymentIntent(priceId, state.user.id);
+      if (result.error) {
+        setError(result.error);
+        setSelectedPlan(null);
+      } else if (result.data) {
+        // Redirect to Stripe Checkout
+        window.location.href = result.data.url;
+      } else {
+        setError('Payment processing is not yet implemented. Please contact support for Pro upgrade.');
+        setSelectedPlan(null);
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Payment processing is not yet implemented. Please contact support for Pro upgrade.';
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred during payment processing.';
       setError(errorMessage);
       setSelectedPlan(null);
     } finally {

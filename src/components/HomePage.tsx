@@ -31,11 +31,12 @@ export function HomePage({ onExplore, onPromptClick }: HomePageProps) {
   useEffect(() => {
     const loadSubscription = async () => {
       if (state.user) {
-        try {
-          const subscription = await getUserSubscription(state.user.id);
-          setSubscriptionLimits(getSubscriptionLimits(subscription));
-        } catch (err) {
-          console.error('Error loading subscription:', err);
+        const result = await getUserSubscription(state.user.id);
+        if (result.error) {
+          console.error('Error loading subscription:', result.error);
+          setSubscriptionLimits(getSubscriptionLimits(null));
+        } else {
+          setSubscriptionLimits(getSubscriptionLimits(result.data));
         }
       } else {
         setSubscriptionLimits(getSubscriptionLimits(null));
@@ -73,9 +74,9 @@ export function HomePage({ onExplore, onPromptClick }: HomePageProps) {
     try {
       const result = await heartsApi.toggle(promptId);
 
-      if (!result.error) {
+      if (!result.error && result.data) {
         // Update global state immediately for instant visual feedback
-        if (result.action === 'added') {
+        if (result.data.action === 'added') {
           dispatch({ type: 'HEART_PROMPT', payload: { promptId } });
         } else {
           dispatch({ type: 'UNHEART_PROMPT', payload: { promptId } });
@@ -103,9 +104,9 @@ export function HomePage({ onExplore, onPromptClick }: HomePageProps) {
     try {
       const result = await savesApi.toggle(promptId);
 
-      if (!result.error) {
+      if (!result.error && result.data) {
         // Update global state immediately for instant visual feedback
-        if (result.action === 'added') {
+        if (result.data.action === 'added') {
           dispatch({ type: 'SAVE_PROMPT', payload: { promptId } });
         } else {
           dispatch({ type: 'UNSAVE_PROMPT', payload: promptId });

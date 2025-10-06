@@ -22,7 +22,7 @@ export interface PaymentIntentData {
 export const createSubscriptionPaymentIntent = async (
   priceId: string,
   userId: string
-): Promise<{ sessionId: string; url: string }> => {
+): Promise<{ data: { sessionId: string; url: string } | null; error: string | null }> => {
   try {
     const { data, error } = await supabase.functions.invoke('create-payment-intent', {
       body: {
@@ -34,17 +34,17 @@ export const createSubscriptionPaymentIntent = async (
 
     if (error) {
       console.error('Supabase function error:', error);
-      throw new Error(error.message || 'Failed to create checkout session');
+      return { data: null, error: error.message || 'Failed to create checkout session' };
     }
 
     if (!data?.sessionId || !data?.url) {
-      throw new Error('Invalid checkout session response');
+      return { data: null, error: 'Invalid checkout session response' };
     }
 
-    return data;
-  } catch (error) {
+    return { data, error: null };
+  } catch (error: any) {
     console.error('Error creating subscription checkout session:', error);
-    throw error;
+    return { data: null, error: error.message || 'An unexpected error occurred while creating checkout session' };
   }
 };
 
@@ -53,7 +53,7 @@ export const createOneTimePaymentIntent = async (
   amount: number,
   currency: string = 'usd',
   userId: string
-): Promise<PaymentIntentData> => {
+): Promise<{ data: PaymentIntentData | null; error: string | null }> => {
   try {
     const { data, error } = await supabase.functions.invoke('create-payment-intent', {
       body: {
@@ -66,26 +66,26 @@ export const createOneTimePaymentIntent = async (
 
     if (error) {
       console.error('Supabase function error:', error);
-      throw new Error(error.message || 'Failed to create payment intent');
+      return { data: null, error: error.message || 'Failed to create payment intent' };
     }
 
     if (!data?.client_secret) {
-      throw new Error('Invalid payment intent response');
+      return { data: null, error: 'Invalid payment intent response' };
     }
 
-    return data;
-  } catch (error) {
+    return { data, error: null };
+  } catch (error: any) {
     console.error('Error creating one-time payment intent:', error);
-    throw error;
+    return { data: null, error: error.message || 'An unexpected error occurred while creating payment intent' };
   }
 };
 
 // Get user's subscription status
-export const getUserSubscription = async (userId: string): Promise<SubscriptionData | null> => {
+export const getUserSubscription = async (userId: string): Promise<{ data: SubscriptionData | null; error: string | null }> => {
   try {
     // Don't query if userId is not provided (user not authenticated)
     if (!userId) {
-      return null;
+      return { data: null, error: null };
     }
 
     const { data, error } = await supabase
@@ -98,22 +98,22 @@ export const getUserSubscription = async (userId: string): Promise<SubscriptionD
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // No subscription found
-        return null;
+        // No subscription found - this is not an error
+        return { data: null, error: null };
       }
       console.error('Error fetching subscription:', error);
-      throw error;
+      return { data: null, error: 'Failed to fetch subscription information' };
     }
 
-    return data;
-  } catch (error) {
+    return { data, error: null };
+  } catch (error: any) {
     console.error('Error getting user subscription:', error);
-    return null;
+    return { data: null, error: error.message || 'An unexpected error occurred while fetching subscription' };
   }
 };
 
 // Cancel subscription
-export const cancelSubscription = async (subscriptionId: string): Promise<void> => {
+export const cancelSubscription = async (subscriptionId: string): Promise<{ data: null; error: string | null }> => {
   try {
     const { error } = await supabase.functions.invoke('cancel-subscription', {
       body: { subscriptionId }
@@ -121,11 +121,13 @@ export const cancelSubscription = async (subscriptionId: string): Promise<void> 
 
     if (error) {
       console.error('Error canceling subscription:', error);
-      throw new Error(error.message || 'Failed to cancel subscription');
+      return { data: null, error: error.message || 'Failed to cancel subscription' };
     }
-  } catch (error) {
+
+    return { data: null, error: null };
+  } catch (error: any) {
     console.error('Error canceling subscription:', error);
-    throw error;
+    return { data: null, error: error.message || 'An unexpected error occurred while canceling subscription' };
   }
 };
 
@@ -133,7 +135,7 @@ export const cancelSubscription = async (subscriptionId: string): Promise<void> 
 export const updateSubscription = async (
   subscriptionId: string,
   newPriceId: string
-): Promise<void> => {
+): Promise<{ data: null; error: string | null }> => {
   try {
     const { error } = await supabase.functions.invoke('update-subscription', {
       body: {
@@ -144,11 +146,13 @@ export const updateSubscription = async (
 
     if (error) {
       console.error('Error updating subscription:', error);
-      throw new Error(error.message || 'Failed to update subscription');
+      return { data: null, error: error.message || 'Failed to update subscription' };
     }
-  } catch (error) {
+
+    return { data: null, error: null };
+  } catch (error: any) {
     console.error('Error updating subscription:', error);
-    throw error;
+    return { data: null, error: error.message || 'An unexpected error occurred while updating subscription' };
   }
 };
 

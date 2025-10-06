@@ -636,92 +636,110 @@ const isValidUUID = (str: string): boolean => {
 
 // Hearts API
 export const hearts = {
-  toggle: async (promptId: string) => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
+  toggle: async (promptId: string): Promise<{ data: { action: 'added' | 'removed' } | null; error: string | null }> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return { data: null, error: 'Not authenticated' }
 
-    // Use database for all prompts
-    // Check if heart exists (don't use .single() - it fails with 406 if no rows)
-    const { data: hearts } = await supabase
-      .from('hearts')
-      .select('user_id, prompt_id')
-      .eq('user_id', user.id)
-      .eq('prompt_id', promptId)
-
-    const existingHeart = hearts && hearts.length > 0 ? hearts[0] : null
-
-    if (existingHeart) {
-      // Remove heart using composite key
-      const { error: deleteError } = await supabase
+      // Use database for all prompts
+      // Check if heart exists (don't use .single() - it fails with 406 if no rows)
+      const { data: hearts } = await supabase
         .from('hearts')
-        .delete()
+        .select('user_id, prompt_id')
         .eq('user_id', user.id)
         .eq('prompt_id', promptId)
 
-      if (deleteError) return { error: deleteError }
+      const existingHeart = hearts && hearts.length > 0 ? hearts[0] : null
 
-      // Decrement count
-      const { error: updateError } = await supabase.rpc('decrement_hearts', { prompt_id: promptId })
+      if (existingHeart) {
+        // Remove heart using composite key
+        const { error: deleteError } = await supabase
+          .from('hearts')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('prompt_id', promptId)
 
-      return { error: updateError, action: 'removed' }
-    } else {
-      // Add heart
-      const { error: insertError } = await supabase
-        .from('hearts')
-        .insert({ user_id: user.id, prompt_id: promptId })
+        if (deleteError) return { data: null, error: 'Failed to remove heart' }
 
-      if (insertError) return { error: insertError }
+        // Decrement count
+        const { error: updateError } = await supabase.rpc('decrement_hearts', { prompt_id: promptId })
 
-      // Increment count
-      const { error: updateError } = await supabase.rpc('increment_hearts', { prompt_id: promptId })
+        if (updateError) return { data: null, error: 'Failed to update heart count' }
 
-      return { error: updateError, action: 'added' }
+        return { data: { action: 'removed' }, error: null }
+      } else {
+        // Add heart
+        const { error: insertError } = await supabase
+          .from('hearts')
+          .insert({ user_id: user.id, prompt_id: promptId })
+
+        if (insertError) return { data: null, error: 'Failed to add heart' }
+
+        // Increment count
+        const { error: updateError } = await supabase.rpc('increment_hearts', { prompt_id: promptId })
+
+        if (updateError) return { data: null, error: 'Failed to update heart count' }
+
+        return { data: { action: 'added' }, error: null }
+      }
+    } catch (error: any) {
+      console.error('Heart toggle error:', error)
+      return { data: null, error: error.message || 'An unexpected error occurred while toggling heart' }
     }
   }
 }
 
 // Saves API
 export const saves = {
-  toggle: async (promptId: string, collectionId?: string) => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
+  toggle: async (promptId: string, collectionId?: string): Promise<{ data: { action: 'added' | 'removed' } | null; error: string | null }> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return { data: null, error: 'Not authenticated' }
 
-    // Use database for all prompts
-    // Check if save exists (don't use .single() - it fails with 406 if no rows)
-    const { data: saves } = await supabase
-      .from('saves')
-      .select('user_id, prompt_id')
-      .eq('user_id', user.id)
-      .eq('prompt_id', promptId)
-
-    const existingSave = saves && saves.length > 0 ? saves[0] : null
-
-    if (existingSave) {
-      // Remove save using composite key
-      const { error: deleteError } = await supabase
+      // Use database for all prompts
+      // Check if save exists (don't use .single() - it fails with 406 if no rows)
+      const { data: saves } = await supabase
         .from('saves')
-        .delete()
+        .select('user_id, prompt_id')
         .eq('user_id', user.id)
         .eq('prompt_id', promptId)
 
-      if (deleteError) return { error: deleteError }
+      const existingSave = saves && saves.length > 0 ? saves[0] : null
 
-      // Decrement count
-      const { error: updateError } = await supabase.rpc('decrement_saves', { prompt_id: promptId })
+      if (existingSave) {
+        // Remove save using composite key
+        const { error: deleteError } = await supabase
+          .from('saves')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('prompt_id', promptId)
 
-      return { error: updateError, action: 'removed' }
-    } else {
-      // Add save
-      const { error: insertError } = await supabase
-        .from('saves')
-        .insert({ user_id: user.id, prompt_id: promptId, collection_id: collectionId })
+        if (deleteError) return { data: null, error: 'Failed to remove save' }
 
-      if (insertError) return { error: insertError }
+        // Decrement count
+        const { error: updateError } = await supabase.rpc('decrement_saves', { prompt_id: promptId })
 
-      // Increment count
-      const { error: updateError } = await supabase.rpc('increment_saves', { prompt_id: promptId })
+        if (updateError) return { data: null, error: 'Failed to update save count' }
 
-      return { error: updateError, action: 'added' }
+        return { data: { action: 'removed' }, error: null }
+      } else {
+        // Add save
+        const { error: insertError } = await supabase
+          .from('saves')
+          .insert({ user_id: user.id, prompt_id: promptId, collection_id: collectionId })
+
+        if (insertError) return { data: null, error: 'Failed to add save' }
+
+        // Increment count
+        const { error: updateError } = await supabase.rpc('increment_saves', { prompt_id: promptId })
+
+        if (updateError) return { data: null, error: 'Failed to update save count' }
+
+        return { data: { action: 'added' }, error: null }
+      }
+    } catch (error: any) {
+      console.error('Save toggle error:', error)
+      return { data: null, error: error.message || 'An unexpected error occurred while toggling save' }
     }
   }
 }
