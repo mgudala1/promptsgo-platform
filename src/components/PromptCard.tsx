@@ -15,6 +15,7 @@ interface PromptCardProps {
   author: {
     name: string;
     username: string;
+    avatar_url?: string;
     subscriptionPlan?: 'free' | 'pro';
   };
   category: string;
@@ -31,6 +32,7 @@ interface PromptCardProps {
   parentAuthor?: {
     name: string;
     username: string;
+    avatar_url?: string;
     subscriptionPlan?: 'free' | 'pro';
   };
   onClick?: () => void;
@@ -85,7 +87,7 @@ export const PromptCard: React.FC<PromptCardProps> = ({
             "h-10 w-10 transition-transform duration-200",
             isHovered && "scale-110"
           )}>
-            <AvatarImage src={author.name} />
+            <AvatarImage src={author.avatar_url} />
             <AvatarFallback className="bg-gradient-to-br from-primary-100 to-primary-200 text-primary-700 font-semibold">
               {author.name?.charAt(0)?.toUpperCase()}
             </AvatarFallback>
