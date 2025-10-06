@@ -6,8 +6,12 @@ import { PromptCard } from "./PromptCard";
 import { AdvancedSearchFilters } from "./AdvancedSearchFilters";
 import { useApp } from "../contexts/AppContext";
 import { prompts as promptsApi, hearts as heartsApi, saves as savesApi } from "../lib/api";
-import { supabase } from "../lib/supabase";
+import { supabase, Database } from "../lib/supabase";
 import { Prompt, SearchFilters } from "../lib/types";
+
+// Type aliases for partial database queries
+type HeartQueryResult = { prompt_id: string };
+type SaveQueryResult = { prompt_id: string };
 import { getSubscriptionLimits, getUserSubscription } from "../lib/subscription";
 import { Filter, Grid3X3, List, X, RefreshCw } from "lucide-react";
 
@@ -52,13 +56,13 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
               .from('hearts')
               .select('prompt_id')
               .eq('user_id', state.user.id);
-            userHearts = heartsData?.map((h: any) => h.prompt_id) || [];
+            userHearts = heartsData?.map((h: HeartQueryResult) => h.prompt_id) || [];
 
             const { data: savesData } = await supabase
               .from('saves')
               .select('prompt_id')
               .eq('user_id', state.user.id);
-            userSaves = savesData?.map((s: any) => s.prompt_id) || [];
+            userSaves = savesData?.map((s: SaveQueryResult) => s.prompt_id) || [];
           } catch (err) {
             console.warn('Failed to load user hearts/saves:', err);
           }
@@ -118,7 +122,7 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
             saveCount: 0,
             invitesRemaining: 0
           },
-          images: item.prompt_images?.map((img: any) => ({
+          images: item.prompt_images?.map((img: Database['public']['Tables']['prompt_images']['Row']) => ({
             id: img.id,
             url: img.url,
             altText: img.alt_text,
