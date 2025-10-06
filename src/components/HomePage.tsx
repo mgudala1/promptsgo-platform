@@ -183,6 +183,7 @@ export function HomePage({ onExplore, onPromptClick }: HomePageProps) {
                 id={prompt.id}
                 title={prompt.title}
                 description={prompt.description}
+                content={prompt.content}
                 author={prompt.author}
                 category={prompt.category}
                 tags={prompt.tags}

@@ -232,6 +232,7 @@ export function PackViewPage({ packId, onBack, onPromptClick }: PackViewPageProp
                   id={prompt.id}
                   title={prompt.title}
                   description={prompt.description}
+                  content={prompt.content}
                   author={prompt.author}
                   category={prompt.category}
                   tags={prompt.tags}

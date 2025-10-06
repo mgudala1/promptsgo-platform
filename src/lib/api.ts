@@ -640,22 +640,7 @@ export const hearts = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
-    // For non-UUID prompts (mock data), use localStorage
-    if (!isValidUUID(promptId)) {
-      console.log('Using localStorage for heart operation on non-UUID prompt:', promptId);
-      const storageKey = `hearts_${user.id}_${promptId}`;
-      const currentlyHearted = localStorage.getItem(storageKey) === 'true';
-
-      if (currentlyHearted) {
-        localStorage.removeItem(storageKey);
-        return { error: null, action: 'removed' };
-      } else {
-        localStorage.setItem(storageKey, 'true');
-        return { error: null, action: 'added' };
-      }
-    }
-
-    // For UUID prompts, use database
+    // Use database for all prompts
     // Check if heart exists (don't use .single() - it fails with 406 if no rows)
     const { data: hearts } = await supabase
       .from('hearts')
@@ -701,22 +686,7 @@ export const saves = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
-    // For non-UUID prompts (mock data), use localStorage
-    if (!isValidUUID(promptId)) {
-      console.log('Using localStorage for save operation on non-UUID prompt:', promptId);
-      const storageKey = `saves_${user.id}_${promptId}`;
-      const currentlySaved = localStorage.getItem(storageKey) === 'true';
-
-      if (currentlySaved) {
-        localStorage.removeItem(storageKey);
-        return { error: null, action: 'removed' };
-      } else {
-        localStorage.setItem(storageKey, 'true');
-        return { error: null, action: 'added' };
-      }
-    }
-
-    // For UUID prompts, use database
+    // Use database for all prompts
     // Check if save exists (don't use .single() - it fails with 406 if no rows)
     const { data: saves } = await supabase
       .from('saves')

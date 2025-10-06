@@ -56,6 +56,7 @@ export function SavedPromptsPage({ onBack, onPromptClick }: SavedPromptsPageProp
             id={prompt.id}
             title={prompt.title}
             description={prompt.description}
+            content={prompt.content}
             author={{
               name: prompt.author.name,
               username: prompt.author.username,
@@ -72,7 +73,7 @@ export function SavedPromptsPage({ onBack, onPromptClick }: SavedPromptsPageProp
             isSaved={prompt.isSaved}
             isHearted={prompt.isHearted}
             createdAt={prompt.createdAt}
-            parentAuthor={prompt.parentId ? 
+            parentAuthor={prompt.parentId ?
               state.prompts.find(p => p.id === prompt.parentId)?.author : undefined
             }
             onClick={() => onPromptClick(prompt.id)}

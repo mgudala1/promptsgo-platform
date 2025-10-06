@@ -113,7 +113,7 @@ export const users: User[] = [
 // Sample prompts
 export const prompts: Prompt[] = [
   {
-    id: '1',
+    id: '550e8400-e29b-41d4-a716-446655440001',
     userId: '1',
     title: 'Professional Email Generator',
     slug: 'professional-email-generator',
@@ -240,7 +240,7 @@ Focus on the most critical issues first.`,
     isForked: false
   },
   {
-    id: '3',
+    id: '550e8400-e29b-41d4-a716-446655440003',
     userId: '3',
     title: 'Creative Story Generator',
     slug: 'creative-story-generator',
@@ -284,7 +284,7 @@ Maintain consistent pacing throughout and focus on showing rather than telling. 
     isForked: false
   },
   {
-    id: '4',
+    id: '550e8400-e29b-41d4-a716-446655440004',
     userId: '4',
     title: 'AI Image Analysis Agent',
     slug: 'ai-image-analysis-agent',
@@ -360,7 +360,7 @@ Provide comprehensive analysis with actionable insights in a structured format.`
 export const comments: Comment[] = [
   {
     id: '1',
-    promptId: '1',
+    promptId: '550e8400-e29b-41d4-a716-446655440001',
     userId: '2',
     content: 'This is incredibly useful! I\'ve been using it for client outreach and it\'s saved me hours. The tone customization is perfect.',
     hearts: 45,
@@ -373,7 +373,7 @@ export const comments: Comment[] = [
     replies: [
       {
         id: '1-1',
-        promptId: '1',
+        promptId: '550e8400-e29b-41d4-a716-446655440001',
         userId: '1',
         parentId: '1',
         content: 'Thanks Alex! Really glad it\'s working well for your outreach. The updated version should work even better!',
@@ -389,7 +389,7 @@ export const comments: Comment[] = [
     ]
   },
   {
-    id: '2',
+    id: '550e8400-e29b-41d4-a716-446655440002',
     promptId: '2',
     userId: '4',
     content: 'Excellent code review prompt! The security analysis section is particularly thorough. Would love to see a version focused specifically on frontend code.',
@@ -527,7 +527,7 @@ export const promptPacks = [
     name: "Marketer's Essentials",
     description: 'Essential prompts for modern marketers: social media campaigns, email marketing, content strategy, and audience analysis.',
     category: 'marketing',
-    promptIds: ['1', '4'], // References to existing prompts
+    promptIds: ['550e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440004'], // References to existing prompts
     isPremium: false,
     createdBy: 'official',
     isOfficial: true,
@@ -541,7 +541,7 @@ export const promptPacks = [
     name: 'Developer Toolkit',
     description: 'Comprehensive code review, debugging, documentation, and architecture design prompts for professional developers.',
     category: 'coding',
-    promptIds: ['2'], // References to existing prompts
+    promptIds: ['550e8400-e29b-41d4-a716-446655440002'], // References to existing prompts
     isPremium: false,
     createdBy: 'official',
     isOfficial: true,
@@ -555,7 +555,7 @@ export const promptPacks = [
     name: 'Creative Writing Suite',
     description: 'Story generators, character builders, and world-building prompts for writers and content creators.',
     category: 'creative',
-    promptIds: ['3'], // References to existing prompts
+    promptIds: ['550e8400-e29b-41d4-a716-446655440003'], // References to existing prompts
     isPremium: false,
     createdBy: 'official',
     isOfficial: true,
@@ -585,7 +585,7 @@ export const promptPacks = [
 export const promptTemplates = [
   {
     id: 'template-1',
-    prompt_id: '1',
+    prompt_id: '550e8400-e29b-41d4-a716-446655440001',
     name: 'Professional Email Generator',
     description: 'Create customized professional emails for different business scenarios',
     fields: [
@@ -627,7 +627,7 @@ export const promptTemplates = [
   },
   {
     id: 'template-2',
-    prompt_id: '2',
+    prompt_id: '550e8400-e29b-41d4-a716-446655440002',
     name: 'Code Review Assistant',
     description: 'Get comprehensive code reviews with specific improvement suggestions',
     fields: [
@@ -661,7 +661,7 @@ export const promptTemplates = [
   },
   {
     id: 'template-3',
-    prompt_id: '3',
+    prompt_id: '550e8400-e29b-41d4-a716-446655440003',
     name: 'Creative Story Generator',
     description: 'Generate engaging stories with custom characters and settings',
     fields: [
@@ -707,7 +707,7 @@ export const promptTemplates = [
 export const promptFeedbacks = [
   {
     id: 'feedback-1',
-    promptId: '1',
+    promptId: '550e8400-e29b-41d4-a716-446655440001',
     userId: '3',
     rating: 'positive' as const,
     note: 'This prompt helped me write compelling email subject lines that increased my open rates by 25%.',
@@ -715,8 +715,8 @@ export const promptFeedbacks = [
     createdAt: '2024-03-15T09:30:00Z'
   },
   {
-    id: 'feedback-2', 
-    promptId: '1',
+    id: 'feedback-2',
+    promptId: '550e8400-e29b-41d4-a716-446655440001',
     userId: '4',
     rating: 'positive' as const,
     note: 'Great for social media posts! Used it for LinkedIn content and got much better engagement.',
@@ -725,7 +725,7 @@ export const promptFeedbacks = [
   },
   {
     id: 'feedback-3',
-    promptId: '1', 
+    promptId: '550e8400-e29b-41d4-a716-446655440001',
     userId: '2',
     rating: 'negative' as const,
     note: 'The tone was too casual for our B2B audience. Had to modify significantly.',
@@ -734,7 +734,7 @@ export const promptFeedbacks = [
   },
   {
     id: 'feedback-4',
-    promptId: '2',
+    promptId: '550e8400-e29b-41d4-a716-446655440002',
     userId: '1',
     rating: 'positive' as const,
     note: 'Excellent for thorough code reviews! Catches security issues I would have missed.',
@@ -743,8 +743,8 @@ export const promptFeedbacks = [
   },
   {
     id: 'feedback-5',
-    promptId: '2',
-    userId: '4', 
+    promptId: '550e8400-e29b-41d4-a716-446655440002',
+    userId: '4',
     rating: 'positive' as const,
     note: 'Very comprehensive checklist. Use it for all major feature reviews.',
     useCase: 'Feature code review',
@@ -752,7 +752,7 @@ export const promptFeedbacks = [
   },
   {
     id: 'feedback-6',
-    promptId: '3',
+    promptId: '550e8400-e29b-41d4-a716-446655440003',
     userId: '2',
     rating: 'positive' as const,
     useCase: 'Blog content planning',
