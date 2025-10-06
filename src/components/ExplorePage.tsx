@@ -1,19 +1,23 @@
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "./ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Card, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Checkbox } from "./ui/checkbox";
+import { Separator } from "./ui/separator";
 import { PromptCard } from "./PromptCard";
-import { AdvancedSearchFilters } from "./AdvancedSearchFilters";
 import { useApp } from "../contexts/AppContext";
-import { prompts as promptsApi, hearts as heartsApi, saves as savesApi } from "../lib/api";
-import { supabase, Database } from "../lib/supabase";
-import { Prompt, SearchFilters } from "../lib/types";
+import { categories, models, promptTypes, popularTags } from "../lib/data";
 
-// Type aliases for partial database queries
-type HeartQueryResult = { prompt_id: string };
-type SaveQueryResult = { prompt_id: string };
-import { getSubscriptionLimits, getUserSubscription } from "../lib/subscription";
-import { Filter, Grid3X3, List, X, RefreshCw } from "lucide-react";
+// Memoize data to avoid recreation on every render
+const memoizedCategories = categories;
+const memoizedModels = models;
+const memoizedPromptTypes = promptTypes;
+const memoizedPopularTags = popularTags;
+import { prompts as promptsApi, hearts as heartsApi, saves as savesApi } from "../lib/api";
+import { supabase } from "../lib/supabase";
+import { Prompt, SearchFilters } from "../lib/types";
+import { Filter, Grid3X3, List, X } from "lucide-react";
 
 interface ExplorePageProps {
   onBack: () => void;
@@ -32,148 +36,147 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [error, setError] = useState<string | null>(null);
-  const [subscriptionLimits, setSubscriptionLimits] = useState(getSubscriptionLimits(null));
 
   // Use global search filters from context
   const filters = state.searchFilters;
 
   // Load database prompts with user hearts/saves
-  const loadPrompts = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data, error } = await promptsApi.getAll();
-      if (!error && data) {
-        // Load user's hearts and saves
-        let userHearts: string[] = [];
-        let userSaves: string[] = [];
+  useEffect(() => {
+    const loadPrompts = async () => {
+      try {
+        const { data, error } = await promptsApi.getAll();
+        if (!error && data) {
+          // Load user's hearts and saves
+          let userHearts: string[] = [];
+          let userSaves: string[] = [];
 
-        if (state.user) {
-          try {
-            // Load database hearts/saves for UUID prompts
-            const { data: heartsData } = await supabase
-              .from('hearts')
-              .select('prompt_id')
-              .eq('user_id', state.user.id);
-            userHearts = heartsData?.map((h: HeartQueryResult) => h.prompt_id) || [];
+          if (state.user) {
+            try {
+              // Load database hearts/saves for UUID prompts
+              const { data: heartsData } = await supabase
+                .from('hearts')
+                .select('prompt_id')
+                .eq('user_id', state.user.id);
+              userHearts = heartsData?.map((h: any) => h.prompt_id) || [];
 
-            const { data: savesData } = await supabase
-              .from('saves')
-              .select('prompt_id')
-              .eq('user_id', state.user.id);
-            userSaves = savesData?.map((s: SaveQueryResult) => s.prompt_id) || [];
-          } catch (err) {
-            console.warn('Failed to load user hearts/saves:', err);
+              const { data: savesData } = await supabase
+                .from('saves')
+                .select('prompt_id')
+                .eq('user_id', state.user.id);
+              userSaves = savesData?.map((s: any) => s.prompt_id) || [];
+
+              // Load localStorage hearts/saves for non-UUID prompts
+              const localStorageKeys = Object.keys(localStorage);
+              localStorageKeys.forEach(key => {
+                if (key.startsWith(`hearts_${state.user!.id}_`)) {
+                  const promptId = key.replace(`hearts_${state.user!.id}_`, '');
+                  if (localStorage.getItem(key) === 'true') {
+                    userHearts.push(promptId);
+                  }
+                }
+                if (key.startsWith(`saves_${state.user!.id}_`)) {
+                  const promptId = key.replace(`saves_${state.user!.id}_`, '');
+                  if (localStorage.getItem(key) === 'true') {
+                    userSaves.push(promptId);
+                  }
+                }
+              });
+            } catch (err) {
+              console.warn('Failed to load user hearts/saves:', err);
+            }
           }
-        }
 
-        const transformedPrompts: Prompt[] = data.map(item => ({
-          id: item.id,
-          userId: item.user_id,
-          title: item.title,
-          slug: item.slug,
-          description: item.description,
-          content: item.content,
-          type: item.type,
-          modelCompatibility: item.model_compatibility,
-          tags: item.tags,
-          visibility: item.visibility,
-          category: item.category,
-          language: item.language,
-          version: item.version,
-          parentId: item.parent_id || undefined,
-          viewCount: item.view_count,
-          hearts: item.hearts,
-          saveCount: item.save_count,
-          forkCount: item.fork_count,
-          commentCount: item.comment_count,
-          createdAt: item.created_at,
-          updatedAt: item.updated_at,
-          attachments: [],
-          author: item.profiles ? {
-            id: item.profiles.id,
-            username: item.profiles.username,
-            email: item.profiles.email || '',
-            name: item.profiles.name,
-            bio: item.profiles.bio || undefined,
-            website: item.profiles.website || undefined,
-            github: item.profiles.github || undefined,
-            twitter: item.profiles.twitter || undefined,
-            reputation: 0,
-            createdAt: item.profiles.created_at || item.created_at,
-            lastLogin: item.profiles.created_at || item.created_at,
-            badges: [],
-            skills: [],
-            subscriptionPlan: item.profiles.subscription_plan || 'free',
-            saveCount: 0,
-            invitesRemaining: item.profiles.invites_remaining || 0
-          } : {
-            id: item.user_id,
-            username: 'user',
-            email: '',
-            name: 'User',
-            reputation: 0,
+          const transformedPrompts: Prompt[] = data.map(item => ({
+            id: item.id,
+            userId: item.user_id,
+            title: item.title,
+            slug: item.slug,
+            description: item.description,
+            content: item.content,
+            type: item.type,
+            modelCompatibility: item.model_compatibility,
+            tags: item.tags,
+            visibility: item.visibility,
+            category: item.category,
+            language: item.language,
+            version: item.version,
+            parentId: item.parent_id || undefined,
+            viewCount: item.view_count,
+            hearts: item.hearts,
+            saveCount: item.save_count,
+            forkCount: item.fork_count,
+            commentCount: item.comment_count,
             createdAt: item.created_at,
-            lastLogin: item.created_at,
-            badges: [],
-            skills: [],
-            subscriptionPlan: 'free',
-            saveCount: 0,
-            invitesRemaining: 0
-          },
-          images: item.prompt_images?.map((img: Database['public']['Tables']['prompt_images']['Row']) => ({
-            id: img.id,
-            url: img.url,
-            altText: img.alt_text,
-            isPrimary: img.is_primary,
-            size: img.size,
-            mimeType: img.mime_type,
-            width: img.width || undefined,
-            height: img.height || undefined
-          })) || [],
-          isHearted: userHearts.includes(item.id),
-          isSaved: userSaves.includes(item.id),
-          isForked: false
-        }));
+            updatedAt: item.updated_at,
+            attachments: [],
+            author: item.profiles ? {
+              id: item.profiles.id,
+              username: item.profiles.username,
+              email: item.profiles.email || '',
+              name: item.profiles.name,
+              bio: item.profiles.bio || undefined,
+              website: item.profiles.website || undefined,
+              github: item.profiles.github || undefined,
+              twitter: item.profiles.twitter || undefined,
+              reputation: 0,
+              createdAt: item.profiles.created_at || item.created_at,
+              lastLogin: item.profiles.created_at || item.created_at,
+              badges: [],
+              skills: [],
+              subscriptionPlan: item.profiles.subscription_plan || 'free',
+              saveCount: 0,
+              invitesRemaining: item.profiles.invites_remaining || 0
+            } : {
+              id: item.user_id,
+              username: 'user',
+              email: '',
+              name: 'User',
+              reputation: 0,
+              createdAt: item.created_at,
+              lastLogin: item.created_at,
+              badges: [],
+              skills: [],
+              subscriptionPlan: 'free',
+              saveCount: 0,
+              invitesRemaining: 0
+            },
+            images: item.prompt_images?.map((img: any) => ({
+              id: img.id,
+              url: img.url,
+              altText: img.alt_text,
+              isPrimary: img.is_primary,
+              size: img.size,
+              mimeType: img.mime_type,
+              width: img.width || undefined,
+              height: img.height || undefined
+            })) || [],
+            isHearted: userHearts.includes(item.id),
+            isSaved: userSaves.includes(item.id),
+            isForked: false
+          }));
 
-        setPrompts(transformedPrompts);
-        dispatch({ type: 'SET_PROMPTS', payload: transformedPrompts });
-      }
-      setLoading(false);
-    } catch (err) {
-      console.error('Error loading prompts:', err);
-      setError('Failed to load prompts. Please check your connection and try again.');
-      setLoading(false);
-    }
-  };
+          // Merge with mock prompts
+          const mockPrompts = state.prompts.filter(p => ['1', '2', '3', '4'].includes(p.id));
+          const merged = [
+            ...transformedPrompts,
+            ...mockPrompts.filter(mock =>
+              !transformedPrompts.some(db => db.slug === mock.slug)
+            )
+          ];
 
-  useEffect(() => {
-    loadPrompts();
-  }, [state.user]); // Re-run when user changes (login/logout)
-
-  // Load user's subscription
-  useEffect(() => {
-    const loadSubscription = async () => {
-      if (state.user) {
-        const result = await getUserSubscription(state.user.id);
-        if (result.error) {
-          console.error('Error loading subscription:', result.error);
-          setSubscriptionLimits(getSubscriptionLimits(null));
-        } else {
-          setSubscriptionLimits(getSubscriptionLimits(result.data));
+          setPrompts(merged);
+          dispatch({ type: 'SET_PROMPTS', payload: merged });
         }
-      } else {
-        setSubscriptionLimits(getSubscriptionLimits(null));
+        setLoading(false); // Set loading to false after successful load
+      } catch (err) {
+        console.error('Error loading prompts:', err);
+        setPrompts(state.prompts);
+        setLoading(false); // Set loading to false even on error
       }
     };
 
-    loadSubscription();
-  }, [state.user]);
-
-  const retryLoad = () => {
     loadPrompts();
-  };
+  }, [state.user]); // Re-run when user changes (login/logout)
 
   // Initialize search query from prop
   useEffect(() => {
@@ -231,7 +234,6 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
       );
     }
 
-
     // Sorting
     filtered.sort((a, b) => {
       switch (filters.sortBy) {
@@ -288,90 +290,52 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
     }});
   };
 
-  const handleHeartPrompt = async (promptId: string) => {
-    if (!state.user) {
-      return;
-    }
-
-    try {
-      const result = await heartsApi.toggle(promptId);
-
-      if (!result.error && result.data) {
-        // Update global state immediately for instant visual feedback
-        if (result.data.action === 'added') {
-          dispatch({ type: 'HEART_PROMPT', payload: { promptId } });
-        } else {
-          dispatch({ type: 'UNHEART_PROMPT', payload: { promptId } });
-        }
-      } else {
-        console.error('Heart error:', result.error);
-      }
-    } catch (error) {
-      console.error('Heart exception:', error);
-    }
-  };
-
-  const handleSavePrompt = async (promptId: string) => {
-    if (!state.user) {
-      return;
-    }
-
-    // Check subscription limits
-    const userSaves = state.prompts.filter(p => p.isSaved).length;
-    if (subscriptionLimits.saves !== 'unlimited' && userSaves >= subscriptionLimits.saves) {
-      alert(`You've reached your save limit (${subscriptionLimits.saves}). Upgrade to Pro for unlimited saves!`);
-      return;
-    }
-
-    try {
-      const result = await savesApi.toggle(promptId);
-
-      if (!result.error && result.data) {
-        // Update global state immediately for instant visual feedback
-        if (result.data.action === 'added') {
-          dispatch({ type: 'SAVE_PROMPT', payload: { promptId } });
-        } else {
-          dispatch({ type: 'UNSAVE_PROMPT', payload: promptId });
-        }
-      } else {
-        console.error('Save error:', result.error);
-      }
-    } catch (error) {
-      console.error('Save exception:', error);
-    }
-  };
-
   const resultsCount = filteredPrompts.length;
 
+  const activeFilters = [
+    ...filters.types,
+    ...filters.models,
+    ...filters.tags,
+    ...filters.categories
+  ];
 
+  const handleCategoryToggle = (categoryId: string) => {
+    const categoryName = memoizedCategories.find(c => c.id === categoryId)?.name;
+    if (!categoryName) return;
+
+    const newCategories = filters.categories.includes(categoryName)
+      ? filters.categories.filter(c => c !== categoryName)
+      : [...filters.categories, categoryName];
+
+    updateFilters({ categories: newCategories });
+  };
+
+  const handleModelToggle = (modelId: string) => {
+    const modelName = memoizedModels.find(m => m.id === modelId)?.name;
+    if (!modelName) return;
+
+    const newModels = filters.models.includes(modelName)
+      ? filters.models.filter(m => m !== modelName)
+      : [...filters.models, modelName];
+
+    updateFilters({ models: newModels });
+  };
+
+  const handleTypeToggle = (type: string) => {
+    const newTypes = filters.types.includes(type)
+      ? filters.types.filter(t => t !== type)
+      : [...filters.types, type];
+    
+    updateFilters({ types: newTypes });
+  };
 
   // Show loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-6 py-8 max-w-7xl">
-          <div className="text-center py-16">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground text-lg">Loading prompts...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-6 py-8 max-w-7xl">
-          <div className="text-center py-16">
-            <div className="text-red-500 text-6xl mb-4">⚠️</div>
-            <h2 className="text-2xl font-bold mb-4">Oops! Something went wrong</h2>
-            <p className="text-muted-foreground text-lg mb-6">{error}</p>
-            <Button onClick={retryLoad} size="lg" className="px-8">
-              <RefreshCw className="h-5 w-5 mr-2" />
-              Try Again
-            </Button>
-          </div>
+      <div className="container mx-auto px-4 py-6">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading prompts...</p>
         </div>
       </div>
     );
@@ -379,169 +343,379 @@ export function ExplorePage({ onBack, onPromptClick, initialSearchQuery }: Explo
 
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-6 py-8 max-w-7xl">
-        <div className="flex gap-8">
-          {/* Advanced Search Filters */}
-          <div className="w-80 flex-shrink-0">
-            <div className={`${isFilterOpen ? "block" : "hidden"} lg:block`}>
-              <AdvancedSearchFilters
-                onFiltersChange={(searchFilters) => {
-                  // Convert SearchFilters to the existing filter format
-                  dispatch({ type: 'SET_SEARCH_FILTERS', payload: {
-                    query: searchFilters.query || '',
-                    types: [], // Will be handled by the component
-                    models: searchFilters.models || [],
-                    tags: [],
-                    categories: searchFilters.category ? [searchFilters.category] : [],
-                    sortBy: searchFilters.sortBy === 'success_rate' ? 'mostLiked' :
-                            searchFilters.sortBy === 'hearts_count' ? 'mostLiked' :
-                            searchFilters.sortBy === 'saves_count' ? 'mostForked' : 'trending'
-                  }});
-                }}
-                onSearch={() => {
-                  // Trigger search - could implement debounced search here
-                }}
-                isLoading={loading}
-                className="sticky top-24"
-              />
-            </div>
-          </div>
+    <div className="container mx-auto px-4 py-6">
+      <div className="flex gap-6">
+        {/* Filter Sidebar */}
+        <div className="w-64 flex-shrink-0">
+          <div className={`${isFilterOpen ? "block" : "hidden"} lg:block`}>
+            <Card className="sticky top-20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-lg">Filters</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsFilterOpen(false)}
+                  className="lg:hidden h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </CardHeader>
+              
+              <CardContent className="space-y-6">
+                {/* Active Filters */}
+                {activeFilters.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Active Filters</span>
+                      <Button variant="ghost" size="sm" className="h-auto p-0 text-xs" onClick={clearFilters}>
+                        Clear All
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {activeFilters.map((filter) => (
+                        <Badge key={filter} variant="secondary" className="text-xs cursor-pointer hover:bg-secondary/80" onClick={() => {
+                          // Remove this specific filter by checking each filter array
+                          if (filters.types.includes(filter as string)) {
+                            handleTypeToggle(filter as string);
+                          } else if (filters.models.includes(filter as string)) {
+                            const model = memoizedModels.find(m => m.name === filter);
+                            if (model) handleModelToggle(model.id);
+                          } else if (filters.tags.includes(filter as string)) {
+                            updateFilters({ tags: filters.tags.filter(t => t !== filter) });
+                          } else if (filters.categories.includes(filter as string)) {
+                            const category = memoizedCategories.find(c => c.name === filter);
+                            if (category) handleCategoryToggle(category.id);
+                          }
+                        }}>
+                          {typeof filter === 'string' ? filter : '[object Object]'}
+                          <X className="h-3 w-3 ml-1" />
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-          {/* Main Content */}
-          <div className="flex-1 min-w-0">
-            <div className="space-y-8">
-              {/* Page Header */}
-              <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <Button variant="ghost" size="sm" onClick={onBack} className="px-3">
-                    ← Back to Home
-                  </Button>
+                {activeFilters.length > 0 && <Separator />}
+
+                {/* Types */}
+                <div className="space-y-3">
+                  <h4>Type</h4>
+                  <div className="space-y-2">
+                    {memoizedPromptTypes.map((type) => (
+                      <div key={type.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={type.id}
+                          checked={filters.types.includes(type.id)}
+                          onCheckedChange={() => handleTypeToggle(type.id)}
+                        />
+                        <label
+                          htmlFor={type.id}
+                          className="text-sm flex-1 cursor-pointer"
+                        >
+                          {type.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                <div>
-                  <h1 className="text-4xl font-bold mb-3">Explore Prompts</h1>
-                  <p className="text-muted-foreground text-lg">
-                    Discover production-ready prompts from the community
+                <Separator />
+
+                {/* Categories */}
+                <div className="space-y-3">
+                  <h4>Categories</h4>
+                  <div className="space-y-2">
+                    {memoizedCategories.map((category) => (
+                      <div key={category.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={category.id}
+                          checked={filters.categories.includes(category.name)}
+                          onCheckedChange={() => handleCategoryToggle(category.id)}
+                        />
+                        <label
+                          htmlFor={category.id}
+                          className="text-sm flex-1 cursor-pointer"
+                        >
+                          {category.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Models */}
+                <div className="space-y-3">
+                  <h4>Model Compatibility</h4>
+                  <div className="space-y-2">
+                    {memoizedModels.map((model) => (
+                      <div key={model.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={model.id}
+                          checked={filters.models.includes(model.name)}
+                          onCheckedChange={() => handleModelToggle(model.id)}
+                        />
+                        <label
+                          htmlFor={model.id}
+                          className="text-sm flex-1 cursor-pointer"
+                        >
+                          {model.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Tags */}
+                <div className="space-y-3">
+                  <h4>Popular Tags</h4>
+                  <div className="space-y-2">
+                    {memoizedPopularTags.map((tag) => (
+                      <div key={tag.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={tag.id}
+                          checked={filters.tags.includes(tag.name)}
+                          onCheckedChange={() => {
+                            const newTags = filters.tags.includes(tag.name)
+                              ? filters.tags.filter(t => t !== tag.name)
+                              : [...filters.tags, tag.name];
+                            updateFilters({ tags: newTags });
+                          }}
+                        />
+                        <label
+                          htmlFor={tag.id}
+                          className="text-sm flex-1 cursor-pointer"
+                        >
+                          {tag.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 min-w-0">
+          <div className="space-y-6">
+            {/* Page Header */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={onBack}>
+                  ← Back to Home
+                </Button>
+              </div>
+              
+              <div>
+                <h1 className="text-3xl mb-2">Explore Prompts</h1>
+                <p className="text-muted-foreground">
+                  Discover production-ready prompts from the community
+                </p>
+              </div>
+
+
+              {/* Controls */}
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    {resultsCount} prompts found
                   </p>
                 </div>
 
-                {/* Controls */}
-                <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-muted/30 rounded-lg p-6">
-                  <div className="flex items-center gap-3">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {resultsCount} prompts found
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  {/* Sort By */}
+                  <Select
+                    value={filters.sortBy}
+                    onValueChange={(value: string) => updateFilters({ sortBy: value as 'relevance' | 'trending' | 'latest' | 'mostLiked' | 'mostForked' })}
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="trending">Trending</SelectItem>
+                      <SelectItem value="latest">Latest</SelectItem>
+                      <SelectItem value="mostLiked">Most Liked</SelectItem>
+                      <SelectItem value="mostForked">Most Forked</SelectItem>
+                      <SelectItem value="relevance">Relevance</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-                  <div className="flex items-center gap-3 flex-wrap">
-                    {/* Sort By */}
-                    <Select
-                      value={filters.sortBy}
-                      onValueChange={(value: string) => updateFilters({ sortBy: value as 'relevance' | 'trending' | 'latest' | 'mostLiked' | 'mostForked' })}
-                    >
-                      <SelectTrigger className="w-44">
-                        <SelectValue placeholder="Sort by" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="trending">Trending</SelectItem>
-                        <SelectItem value="latest">Latest</SelectItem>
-                        <SelectItem value="mostLiked">Most Liked</SelectItem>
-                        <SelectItem value="mostForked">Most Forked</SelectItem>
-                        <SelectItem value="relevance">Relevance</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    {/* View Mode Toggle */}
-                    <div className="flex border rounded-lg overflow-hidden">
-                      <Button
-                        variant={viewMode === "grid" ? "default" : "ghost"}
-                        size="sm"
-                        onClick={() => setViewMode("grid")}
-                        className="rounded-r-none border-r"
-                      >
-                        <Grid3X3 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant={viewMode === "list" ? "default" : "ghost"}
-                        size="sm"
-                        onClick={() => setViewMode("list")}
-                        className="rounded-l-none"
-                      >
-                        <List className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {/* Filter Toggle for Mobile */}
+                  {/* View Mode Toggle */}
+                  <div className="flex border rounded-md">
                     <Button
-                      variant="outline"
+                      variant={viewMode === "grid" ? "default" : "ghost"}
                       size="sm"
-                      onClick={() => setIsFilterOpen(!isFilterOpen)}
-                      className="lg:hidden px-4"
+                      onClick={() => setViewMode("grid")}
+                      className="rounded-r-none"
                     >
-                      <Filter className="h-4 w-4 mr-2" />
-                      Filters
+                      <Grid3X3 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={viewMode === "list" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setViewMode("list")}
+                      className="rounded-l-none"
+                    >
+                      <List className="h-4 w-4" />
                     </Button>
                   </div>
-                </div>
-              </div>
 
-              {/* Results Grid */}
-              <div className={`grid gap-8 ${
-                viewMode === "grid"
-                  ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
-                  : "grid-cols-1"
-              }`}>
-                {filteredPrompts.map((prompt) => (
-                  <PromptCard
-                    key={prompt.id}
-                    id={prompt.id}
-                    title={prompt.title}
-                    description={prompt.description}
-                    author={prompt.author}
-                    category={prompt.category}
-                    tags={prompt.tags}
-                    images={prompt.images}
-                    stats={{
-                      hearts: prompt.hearts,
-                      saves: prompt.saveCount,
-                      forks: prompt.forkCount
-                    }}
-                    isSaved={prompt.isSaved}
-                    isHearted={prompt.isHearted}
-                    createdAt={prompt.createdAt}
-                    onClick={() => onPromptClick(prompt.id)}
-                    onHeart={() => handleHeartPrompt(prompt.id)}
-                    onSave={() => handleSavePrompt(prompt.id)}
-                    onShare={async () => {
-                      const url = `${window.location.origin}/prompts/${prompt.slug}`;
-                      try {
-                        if (navigator.share) {
-                          await navigator.share({
-                            title: prompt.title,
-                            text: prompt.description,
-                            url: url
-                          });
-                        } else {
-                          await navigator.clipboard.writeText(url);
-                        }
-                      } catch (err) {
-                        console.error('Failed to share:', err);
-                      }
-                    }}
-                  />
-                ))}
-              </div>
-
-              {filteredPrompts.length === 0 && (
-                <div className="text-center py-16">
-                  <p className="text-muted-foreground text-lg">No prompts found matching your criteria.</p>
-                  <Button variant="outline" onClick={clearFilters} className="mt-6 px-6">
-                    Clear all filters
+                  {/* Filter Toggle for Mobile */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                    className="lg:hidden"
+                  >
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filters
                   </Button>
                 </div>
-              )}
+              </div>
             </div>
+
+            {/* Results Grid */}
+            <div className={`grid gap-6 ${
+              viewMode === "grid" 
+                ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" 
+                : "grid-cols-1"
+            }`}>
+              {filteredPrompts.map((prompt) => (
+                <PromptCard
+                  key={prompt.id}
+                  id={prompt.id}
+                  title={prompt.title}
+                  description={prompt.description}
+                  author={{
+                    name: prompt.author.name,
+                    username: prompt.author.username,
+                    subscriptionPlan: prompt.author.subscriptionPlan
+                  }}
+                  category={prompt.category}
+                  tags={prompt.tags}
+                  images={prompt.images}
+                  stats={{
+                    hearts: prompt.hearts,
+                    saves: prompt.saveCount,
+                    forks: prompt.forkCount
+                  }}
+                  isSaved={prompt.isSaved}
+                  isHearted={prompt.isHearted}
+                  createdAt={prompt.createdAt}
+                  onClick={() => onPromptClick(prompt.id)}
+                  onHeart={async () => {
+                    if (!state.user) {
+                      console.log('User not authenticated');
+                      return;
+                    }
+                    console.log('Toggling heart for prompt:', prompt.id, 'Current isHearted:', prompt.isHearted);
+                    try {
+                      const result = await heartsApi.toggle(prompt.id);
+                      console.log('Heart result:', result);
+
+                      if (!result.error) {
+                        // Always update UI state for user experience, regardless of backend operation
+                        if (result.action === 'skipped') {
+                          console.log('Heart operation skipped for mock prompt, but updating UI anyway:', prompt.id);
+                        }
+
+                        // Toggle the heart state based on current state
+                        const newHeartedState = !prompt.isHearted;
+                        const heartCountChange = newHeartedState ? 1 : -1;
+
+                        console.log(`${newHeartedState ? 'Adding' : 'Removing'} heart - updating UI`);
+                        dispatch({
+                          type: newHeartedState ? 'HEART_PROMPT' : 'UNHEART_PROMPT',
+                          payload: { promptId: prompt.id }
+                        });
+                        setPrompts(prev => prev.map(p =>
+                          p.id === prompt.id ? {
+                            ...p,
+                            isHearted: newHeartedState,
+                            hearts: Math.max(0, p.hearts + heartCountChange)
+                          } : p
+                        ));
+                      } else {
+                        console.error('Heart error:', result.error);
+                      }
+                    } catch (error) {
+                      console.error('Heart exception:', error);
+                    }
+                  }}
+                  onSave={async () => {
+                    if (!state.user) {
+                      console.log('User not authenticated');
+                      return;
+                    }
+                    console.log('Toggling save for prompt:', prompt.id, 'Current isSaved:', prompt.isSaved);
+                    try {
+                      const result = await savesApi.toggle(prompt.id);
+                      console.log('Save result:', result);
+
+                      if (!result.error) {
+                        // Always update UI state for user experience, regardless of backend operation
+                        if (result.action === 'skipped') {
+                          console.log('Save operation skipped for mock prompt, but updating UI anyway:', prompt.id);
+                        }
+
+                        // Toggle the save state based on current state
+                        const newSavedState = !prompt.isSaved;
+                        const saveCountChange = newSavedState ? 1 : -1;
+
+                        console.log(`${newSavedState ? 'Adding' : 'Removing'} save - updating UI`);
+                        if (newSavedState) {
+                          dispatch({ type: 'SAVE_PROMPT', payload: { promptId: prompt.id } });
+                        } else {
+                          dispatch({ type: 'UNSAVE_PROMPT', payload: prompt.id });
+                        }
+                        setPrompts(prev => prev.map(p =>
+                          p.id === prompt.id ? {
+                            ...p,
+                            isSaved: newSavedState,
+                            saveCount: Math.max(0, p.saveCount + saveCountChange)
+                          } : p
+                        ));
+                      } else {
+                        console.error('Save error:', result.error);
+                      }
+                    } catch (error) {
+                      console.error('Save exception:', error);
+                    }
+                  }}
+                  onShare={async () => {
+                    const url = `${window.location.origin}/prompts/${prompt.slug}`;
+                    try {
+                      if (navigator.share) {
+                        await navigator.share({
+                          title: prompt.title,
+                          text: prompt.description,
+                          url: url
+                        });
+                      } else {
+                        await navigator.clipboard.writeText(url);
+                        // Could show a toast notification here
+                      }
+                    } catch (err) {
+                      console.error('Failed to share:', err);
+                    }
+                  }}
+                />
+              ))}
+            </div>
+
+            {filteredPrompts.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No prompts found matching your criteria.</p>
+                <Button variant="outline" onClick={clearFilters} className="mt-4">
+                  Clear all filters
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

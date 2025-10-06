@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AppProvider, useApp } from "./contexts/AppContext";
 import { Navigation } from "./components/Navigation";
 import { HomePage } from "./components/HomePage";
@@ -23,12 +23,6 @@ import { AffiliateProgramPage } from "./components/ui/AffiliateProgramPage";
 import { AffiliateDashboard } from "./components/AffiliateDashboard";
 import { AdminBulkImport } from "./components/AdminBulkImport";
 import { UIPlayground } from "./components/UIPlayground";
-import { AdminDashboard } from "./components/AdminDashboard";
-import { ListsAndFoldersPage } from "./components/ListsAndFoldersPage";
-import { VersionHistory } from "./components/VersionHistory";
-import { WelcomeModal } from "./components/WelcomeModal";
-import { ProUpgradeModal } from "./components/ProUpgradeModal";
-import { Toaster } from "./components/ui/sonner";
 import { Prompt } from "./lib/types";
 import { isAdmin } from "./lib/admin";
 import { prompts } from "./lib/api";
@@ -37,44 +31,31 @@ type Page =
   | { type: 'home' }
   | { type: 'explore'; searchQuery?: string }
   | { type: 'create'; editingPrompt?: Prompt }
-   | { type: 'prompt'; promptId: string }
-   | { type: 'profile'; userId: string; tab?: string }
-   | { type: 'portfolio-view'; portfolioId: string }
-   | { type: 'settings' }
-   | { type: 'subscription' }
-   | { type: 'billing' }
-   | { type: 'industry-packs' }
-   | { type: 'pack-view'; packId: string }
-   | { type: 'pack-create' }
-   | { type: 'version-history'; promptId: string }
-   | { type: 'about' }
-   | { type: 'terms' }
-   | { type: 'privacy' }
-   | { type: 'invite' }
-   | { type: 'affiliate' }
-   | { type: 'affiliate-dashboard' }
-   | { type: 'admin-bulk-import' }
-   | { type: 'admin-dashboard' }
-   | { type: 'lists-and-folders' }
-   | { type: 'ui-playground' };
+  | { type: 'prompt'; promptId: string }
+  | { type: 'profile'; userId: string; tab?: string }
+  | { type: 'portfolio-view'; portfolioId: string }
+  | { type: 'settings' }
+  | { type: 'subscription' }
+  | { type: 'billing' }
+  | { type: 'industry-packs' }
+  | { type: 'pack-view'; packId: string }
+  | { type: 'pack-create' }
+  | { type: 'about' }
+  | { type: 'terms' }
+  | { type: 'privacy' }
+  | { type: 'invite' }
+  | { type: 'affiliate' }
+  | { type: 'affiliate-dashboard' }
+  | { type: 'admin-bulk-import' }
+  | { type: 'ui-playground' };
 
 function AppContent() {
   const { state, dispatch } = useApp();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
-  const [isProUpgradeModalOpen, setIsProUpgradeModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState<Page>({ type: 'home' });
 
-  // Show welcome modal for new users
-  useEffect(() => {
-    if (state.user) {
-      // Check if user has completed onboarding
-      const hasCompleted = localStorage.getItem(`onboarding_completed_${state.user.id}`);
-      if (!hasCompleted) {
-        setIsWelcomeModalOpen(true);
-      }
-    }
-  }, [state.user]);
+  // Simple test to see if React is working
+  console.log('AppContent rendering, state:', state);
 
   const handleAuthClick = () => {
     setIsAuthModalOpen(true);
@@ -197,13 +178,12 @@ function AppContent() {
     if (!state.user) return;
 
     // Create a forked version
-    const forkId = crypto.randomUUID();
     const forkedPrompt: Prompt = {
       ...originalPrompt,
-      id: forkId,
+      id: `prompt-${Date.now()}`,
       userId: state.user.id,
       title: `Fork of ${originalPrompt.title}`,
-      slug: `fork-of-${originalPrompt.slug}-${forkId}`,
+      slug: `fork-of-${originalPrompt.slug}-${Date.now()}`,
       parentId: originalPrompt.id,
       version: '1.0.0',
       viewCount: 0,
@@ -240,7 +220,6 @@ function AppContent() {
     }
   };
 
-
   const handleSettingsClick = () => {
     if (state.user) {
       setCurrentPage({ type: 'settings' });
@@ -254,21 +233,10 @@ function AppContent() {
   const handleAdminClick = (feature: string) => {
     if (feature === 'bulk-import') {
       setCurrentPage({ type: 'admin-bulk-import' });
-    } else if (feature === 'dashboard') {
-      setCurrentPage({ type: 'admin-dashboard' });
     } else if (feature === 'ui-playground') {
       setCurrentPage({ type: 'ui-playground' });
     }
     // Add more admin features here in the future
-  };
-
-
-  // Handle successful onboarding completion
-  const handleOnboardingComplete = () => {
-    if (state.user) {
-      localStorage.setItem(`onboarding_completed_${state.user.id}`, 'true');
-    }
-    setIsWelcomeModalOpen(false);
   };
 
   return (
@@ -289,6 +257,7 @@ function AppContent() {
       <main>
         {currentPage.type === 'home' && (
           <HomePage
+            onGetStarted={handleGetStarted}
             onExplore={handleExplore}
             onPromptClick={handlePromptClick}
           />
@@ -301,7 +270,6 @@ function AppContent() {
             initialSearchQuery={currentPage.searchQuery}
           />
         )}
-
         
         {currentPage.type === 'create' && (
           <CreatePromptPage 
@@ -333,6 +301,7 @@ function AppContent() {
             initialTab={currentPage.tab}
             onBack={handleBack}
             onPromptClick={handlePromptClick}
+            onNavigateToSettings={() => state.user && handleSettingsClick()}
             onNavigateToIndustryPacks={() => setCurrentPage({ type: 'industry-packs' })}
             onNavigateToPackView={(packId) => setCurrentPage({ type: 'pack-view', packId })}
             onNavigateToPortfolioView={(portfolioId) => setCurrentPage({ type: 'portfolio-view', portfolioId })}
@@ -385,16 +354,6 @@ function AppContent() {
           />
         )}
 
-
-        {currentPage.type === 'version-history' && (
-          <VersionHistory
-            promptId={currentPage.promptId}
-            onVersionRestored={() => {
-              // Handle version restoration - could refresh the prompt data
-            }}
-          />
-        )}
-
         {currentPage.type === 'portfolio-view' && (
           <PortfolioViewPage
             portfolioId={currentPage.portfolioId}
@@ -436,16 +395,8 @@ function AppContent() {
           <AffiliateDashboard />
         )}
 
-        {currentPage.type === 'admin-dashboard' && isAdmin(state.user) && (
-          <AdminDashboard />
-        )}
-
         {currentPage.type === 'admin-bulk-import' && isAdmin(state.user) && (
           <AdminBulkImport />
-        )}
-
-        {currentPage.type === 'lists-and-folders' && (
-          <ListsAndFoldersPage />
         )}
 
         {currentPage.type === 'ui-playground' && isAdmin(state.user) && (
@@ -466,21 +417,6 @@ function AppContent() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
       />
-
-      {/* Professional Modals */}
-      <WelcomeModal
-        isOpen={isWelcomeModalOpen}
-        onClose={handleOnboardingComplete}
-      />
-
-      <ProUpgradeModal
-        isOpen={isProUpgradeModalOpen}
-        onClose={() => setIsProUpgradeModalOpen(false)}
-        trigger="advanced_feature"
-      />
-
-
-      <Toaster />
     </div>
   );
 }

@@ -12,14 +12,12 @@ import { PromptCard } from './PromptCard';
 import { useApp } from '../contexts/AppContext';
 import { User, Prompt } from '../lib/types';
 import { CreatePortfolioPage } from './CreatePortfolioPage';
-import { FolderManagement } from './FolderManagement';
-import { FavoritesAndRecents } from './FavoritesAndRecents';
 import {
   ArrowLeft, User as UserIcon, Calendar, ExternalLink, Github,
-  Twitter, Award, Star, GitFork, BookmarkPlus,
-  TrendingUp, Crown, Zap, Target,
-  Shield, Globe, Trash2, Package,
-  Briefcase, Plus, Eye, Lock, Copy, Trash
+  Twitter, MapPin, Award, Star, GitFork, BookmarkPlus, Heart,
+  TrendingUp, Users, Edit, Settings, Crown, Zap, Target,
+  Shield, Globe, Link, Trash2, Package,
+  Briefcase, Plus, Eye, Lock, Copy, Download, Trash
 } from 'lucide-react';
 
 interface UserProfilePageProps {
@@ -27,16 +25,18 @@ interface UserProfilePageProps {
   initialTab?: string;
   onBack: () => void;
   onPromptClick: (promptId: string) => void;
+  onNavigateToSettings?: () => void;
   onNavigateToIndustryPacks?: () => void;
   onNavigateToPackView?: (packId: string) => void;
   onNavigateToPortfolioView?: (portfolioId: string) => void;
 }
 
-export function UserProfilePage({
-  userId,
-  initialTab,
-  onBack,
-  onPromptClick,
+export function UserProfilePage({ 
+  userId, 
+  initialTab, 
+  onBack, 
+  onPromptClick, 
+  onNavigateToSettings,
   onNavigateToIndustryPacks,
   onNavigateToPackView,
   onNavigateToPortfolioView
@@ -121,6 +121,8 @@ export function UserProfilePage({
   const totalForks = userPrompts.reduce((sum, p) => sum + p.forkCount, 0);
   const totalViews = userPrompts.reduce((sum, p) => sum + p.viewCount, 0);
 
+  const followerCount = state.follows.filter(f => f.followingId === userId).length;
+  const followingCount = state.follows.filter(f => f.followerId === userId).length;
 
   const handleSave = () => {
     if (!state.user) return;
@@ -373,12 +375,6 @@ export function UserProfilePage({
               <TabsTrigger value="forked">
                 Forked ({forkedPrompts.length})
               </TabsTrigger>
-              <TabsTrigger value="lists">
-                My Lists ({0})
-              </TabsTrigger>
-              <TabsTrigger value="folders">
-                Folders ({0})
-              </TabsTrigger>
               <TabsTrigger value="packs">
                 My Packs ({state.userPackLibrary?.packs?.length || 0})
               </TabsTrigger>
@@ -569,24 +565,6 @@ export function UserProfilePage({
                   </CardContent>
                 </Card>
               )}
-            </TabsContent>
-
-            <TabsContent value="lists" className="space-y-6">
-              {(() => {
-                return <FavoritesAndRecents onPromptClick={onPromptClick} />;
-              })()}
-            </TabsContent>
-
-            <TabsContent value="folders" className="space-y-6">
-              {(() => {
-                return (
-                  <FolderManagement
-                    onFolderSelect={() => {
-                      // Could navigate to a folder view page in the future
-                    }}
-                  />
-                );
-              })()}
             </TabsContent>
 
             {/* My Packs Tab */}

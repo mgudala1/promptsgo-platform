@@ -1,12 +1,10 @@
-import React, { useState } from 'react'
-import { ProfessionalCard } from './ui/ProfessionalCard'
-import { ProfessionalBadge } from './ui/ProfessionalBadge'
-import { ProfessionalButton } from './ui/ProfessionalButton'
-import { SuccessVoting } from './SuccessVoting'
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
-import { Heart, Bookmark, Eye, ExternalLink, Zap } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
-import { cn } from './ui/utils'
+import { Card, CardContent } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Heart, Share, BookmarkPlus, GitFork } from "lucide-react";
+import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { categories } from "../lib/data";
+import { PromptImage } from "../lib/types";
 
 interface PromptCardProps {
   id: string;
@@ -19,7 +17,7 @@ interface PromptCardProps {
   };
   category: string;
   tags: string[];
-  images?: any[];
+  images?: PromptImage[];
   stats?: {
     hearts: number;
     saves: number;
@@ -36,262 +34,188 @@ interface PromptCardProps {
   onClick?: () => void;
   onHeart?: () => void;
   onSave?: () => void;
-  onShare?: () => Promise<void>;
-  className?: string;
+  onShare?: () => void;
 }
 
-export const PromptCard: React.FC<PromptCardProps> = ({
-  id,
+// Get initials from name
+function getInitials(name: string): string {
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+}
+
+// Get relative time
+function getRelativeTime(date: string): string {
+  const now = new Date();
+  const created = new Date(date);
+  const diffInHours = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60));
+  
+  if (diffInHours < 1) return 'Just now';
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 7) return `${diffInDays}d ago`;
+  
+  const diffInWeeks = Math.floor(diffInDays / 7);
+  if (diffInWeeks < 4) return `${diffInWeeks}w ago`;
+  
+  const diffInMonths = Math.floor(diffInDays / 30);
+  return `${diffInMonths}mo ago`;
+}
+
+export function PromptCard({
+  id: _id,
   title,
   description,
   author,
   category,
-  tags,
-  images: _images,
+  tags: _tags,
+  images,
   stats,
   isSaved = false,
   isHearted = false,
   createdAt,
-  parentAuthor: _parentAuthor,
+  parentAuthor,
   onClick,
   onHeart,
   onSave,
-  onShare,
-  className
-}) => {
-  const [hearted, setHearted] = useState(isHearted)
-  const [saved, setSaved] = useState(isSaved)
-  const [isHovered, setIsHovered] = useState(false)
-
-  const hasVariables = false // This would need to be calculated from content if available
-
+  onShare
+}: PromptCardProps) {
+  const categoryData = categories.find(cat =>
+    cat.id === category?.toLowerCase() ||
+    cat.label?.toLowerCase() === category?.toLowerCase() ||
+    cat.name?.toLowerCase() === category?.toLowerCase()
+  );
+  const primaryImage = images?.find(img => img.isPrimary) || images?.[0];
+  
   return (
-    <ProfessionalCard
-      floating
-      className={cn(
-        "group relative overflow-hidden animate-slide-in-up",
-        "hover:shadow-professional hover:border-primary-200",
-        "transition-all duration-300 ease-out",
-        className
-      )}
+    <Card 
+      className="group hover:shadow-lg transition-all duration-200 cursor-pointer h-full flex flex-col overflow-hidden"
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Header with Author */}
-      <div className="flex items-center justify-between p-6 pb-4">
-        <div className="flex items-center gap-3">
-          <Avatar className={cn(
-            "h-10 w-10 transition-transform duration-200",
-            isHovered && "scale-110"
-          )}>
-            <AvatarImage src={author.name} />
-            <AvatarFallback className="bg-gradient-to-br from-primary-100 to-primary-200 text-primary-700 font-semibold">
-              {author.name?.charAt(0)?.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="text-body font-semibold text-text-primary group-hover:text-primary-600 transition-colors">
-              {author.username}
-              {author.subscriptionPlan === 'pro' && (
-                <span className="ml-2 inline-flex items-center">
-                  <ProfessionalBadge premium className="text-xs px-1.5 py-0.5">
-                    Pro
-                  </ProfessionalBadge>
-                </span>
-              )}
-            </p>
-            <p className="text-body-small text-text-muted">
-              {(() => {
-                try {
-                  return formatDistanceToNow(new Date(createdAt), { addSuffix: true });
-                } catch {
-                  return 'Recently';
-                }
-              })()}
-            </p>
-          </div>
-        </div>
-
-        {/* Success Rate Badge */}
-        <div className={cn(
-          "transition-all duration-300",
-          isHovered ? "opacity-100 scale-105" : "opacity-70 scale-100"
-        )}>
-          <SuccessVoting
-            promptId={id}
-            variant="badge-only"
-            className="animate-fade-in"
+      {/* Primary Image */}
+      {primaryImage && (
+        <div className="aspect-video w-full overflow-hidden">
+          <ImageWithFallback
+            src={primaryImage.url}
+            alt={primaryImage.altText}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
           />
         </div>
-      </div>
+      )}
 
-      {/* Content */}
-      <div className="px-6 pb-4">
-        {/* Category & Template Indicators */}
-        <div className="flex items-center gap-2 mb-4">
-          <ProfessionalBadge
-            gradient
-            className={cn(
-              "text-xs font-semibold transition-all duration-200",
-              isHovered && "scale-105"
-            )}
-          >
-            {category}
-          </ProfessionalBadge>
-
-          {hasVariables && (
-            <ProfessionalBadge
-              premium
-              className={cn(
-                "text-xs transition-all duration-200",
-                isHovered && "scale-105"
-              )}
-            >
-              <Zap size={10} className="mr-1" />
-              Template
-            </ProfessionalBadge>
-          )}
-        </div>
-
+      <CardContent className="p-4 flex-1 flex flex-col space-y-3">
         {/* Title */}
-        <h3 className={cn(
-          "text-heading-2 text-text-primary mb-3 line-clamp-2",
-          "group-hover:text-primary-600 transition-all duration-200",
-          isHovered && "translate-x-1"
-        )}>
+        <h3 className="line-clamp-2 group-hover:text-primary transition-colors">
           {title}
         </h3>
 
+        {/* Author - Text only username */}
+        <div className="flex items-center gap-2 text-sm">
+          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs">
+            {getInitials(author.name)}
+          </div>
+          <span className="text-muted-foreground">
+            {author.username}
+          </span>
+          {author.subscriptionPlan === 'pro' && (
+            <Badge variant="secondary" className="text-xs py-0 px-1">PRO</Badge>
+          )}
+          <span className="text-xs text-muted-foreground">
+            • {getRelativeTime(createdAt)}
+          </span>
+        </div>
+
+        {/* Forked from indicator */}
+        {parentAuthor && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 rounded-md px-2 py-1">
+            <GitFork className="h-3 w-3" />
+            <span>Forked from</span>
+            <span className="font-medium">{parentAuthor.username}</span>
+          </div>
+        )}
+
         {/* Description */}
-        <p className="text-body text-text-secondary mb-4 line-clamp-3 leading-relaxed">
+        <p className="text-muted-foreground text-sm line-clamp-3 flex-1">
           {description}
         </p>
 
-        {/* Tags */}
-        {tags && tags.length > 0 && (
-          <div className="flex items-center gap-2 mb-4 flex-wrap">
-            <span className="text-body-small text-text-muted font-medium">Tags:</span>
-            {tags.slice(0, 3).map((tag: string, index: number) => (
-              <ProfessionalBadge
-                key={tag}
-                variant="outline"
-                className={cn(
-                  "text-xs px-2 py-1 transition-all duration-200",
-                  isHovered && "hover:bg-primary-50 hover:border-primary-200"
-                )}
-                style={{
-                  animationDelay: `${index * 50}ms`,
-                  animation: isHovered ? 'slideInUp 0.3s ease-out forwards' : 'none'
-                }}
-              >
-                {tag}
-              </ProfessionalBadge>
-            ))}
-            {tags.length > 3 && (
-              <span className="text-body-small text-text-muted font-medium">
-                +{tags.length - 3} more
-              </span>
-            )}
-          </div>
-        )}
-      </div>
+        {/* Category Badge */}
+        <div className="flex items-center gap-2">
+          {categoryData ? (
+            <Badge
+              variant="outline"
+              className="text-xs"
+              style={{
+                borderColor: categoryData.color + '40',
+                color: categoryData.color,
+                backgroundColor: categoryData.color + '10'
+              }}
+            >
+              {categoryData.label}
+            </Badge>
+          ) : category ? (
+            <Badge variant="outline" className="text-xs">
+              {category}
+            </Badge>
+          ) : null}
+        </div>
 
-      {/* Footer */}
-      <div className={cn(
-        "px-6 py-4 border-t border-border transition-all duration-300",
-        isHovered ? "bg-gradient-to-r from-primary-50/50 to-purple-50/50" : "bg-gray-50/80"
-      )}>
-        <div className="flex items-center justify-between">
-          {/* Stats */}
-          <div className="flex items-center gap-6 text-body-small text-text-muted">
-            <div className="flex items-center gap-1.5 group/stat">
-              <Eye size={14} className="group-hover/stat:text-primary-500 transition-colors" />
-              <span className="font-medium">{stats?.forks || 0}</span>
+        {/* Stats and Actions */}
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-4 text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <GitFork className="h-3 w-3" />
+              {stats?.forks || 0}
             </div>
-            <div className="flex items-center gap-1.5 group/stat">
-              <Heart size={14} className={cn(
-                "transition-all duration-200",
-                hearted ? "text-red-500 fill-current scale-110" : "group-hover/stat:text-red-400"
-              )} />
-              <span className="font-medium">{stats?.hearts || 0}</span>
-            </div>
-            <div className="flex items-center gap-1.5 group/stat">
-              <Bookmark size={14} className={cn(
-                "transition-all duration-200",
-                saved ? "text-blue-500 fill-current scale-110" : "group-hover/stat:text-blue-400"
-              )} />
-              <span className="font-medium">{stats?.saves || 0}</span>
+            <div className="flex items-center gap-1">
+              <BookmarkPlus className="h-3 w-3" />
+              {stats?.saves || 0}
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-1">
-            <ProfessionalButton
-              variant="ghost"
+          <div className="flex items-center gap-2">
+            <Button
               size="sm"
-              onClick={(e) => {
-                e.stopPropagation()
-                setHearted(!hearted)
-                onHeart?.()
+              variant="ghost"
+              className="h-8 gap-1 px-2"
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                onHeart?.();
               }}
-              className={cn(
-                "transition-all duration-200 hover:scale-110",
-                hearted && "text-red-500 bg-red-50 hover:bg-red-100"
-              )}
             >
-              <Heart size={16} className={cn(
-                "transition-all duration-200",
-                hearted ? "fill-current scale-110" : ""
-              )} />
-            </ProfessionalButton>
+              <Heart
+                className={`h-3 w-3 ${isHearted ? 'fill-red-500 text-red-500' : ''}`}
+              />
+              {stats?.hearts || 0}
+            </Button>
 
-            <ProfessionalButton
-              variant="ghost"
+            <Button
               size="sm"
-              onClick={(e) => {
-                e.stopPropagation()
-                setSaved(!saved)
-                onSave?.()
+              variant="ghost"
+              className="h-8 gap-1 px-2"
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                onSave?.();
               }}
-              className={cn(
-                "transition-all duration-200 hover:scale-110",
-                saved && "text-blue-500 bg-blue-50 hover:bg-blue-100"
-              )}
             >
-              <Bookmark size={16} className={cn(
-                "transition-all duration-200",
-                saved ? "fill-current scale-110" : ""
-              )} />
-            </ProfessionalButton>
+              <BookmarkPlus
+                className={`h-3 w-3 ${isSaved ? 'fill-primary text-primary' : ''}`}
+              />
+            </Button>
 
-            <ProfessionalButton
-              variant="ghost"
+            <Button
               size="sm"
-              onClick={(e) => {
-                e.stopPropagation()
-                onShare?.()
+              variant="ghost"
+              className="h-8 px-2"
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                onShare?.();
               }}
-              className="transition-all duration-200 hover:scale-110 hover:text-primary-600 hover:bg-primary-50"
             >
-              <ExternalLink size={16} />
-            </ProfessionalButton>
+              <Share className="h-3 w-3" />
+            </Button>
           </div>
         </div>
-      </div>
-
-      {/* Hover Overlay */}
-      <div className={cn(
-        "absolute inset-0 bg-gradient-to-br from-primary-50/0 via-purple-50/0 to-blue-50/0 opacity-0 transition-all duration-500 rounded-lg",
-        isHovered && "from-primary-50/20 via-purple-50/10 to-blue-50/20 opacity-100"
-      )} />
-
-      {/* Subtle Border Glow */}
-      <div className={cn(
-        "absolute inset-0 rounded-lg opacity-0 transition-opacity duration-300",
-        "ring-1 ring-primary-200/0",
-        isHovered && "ring-primary-200/50 opacity-100"
-      )} />
-    </ProfessionalCard>
-  )
+      </CardContent>
+    </Card>
+  );
 }
