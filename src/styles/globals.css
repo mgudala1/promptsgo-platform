@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -7,90 +8,95 @@
   --font-size: 16px;
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-family-mono: 'JetBrains Mono', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  --font-family-headings: 'Crimson Text', serif;
   
-  /* GitHub-inspired Color Palette */
-  --background: #FFFFFF;
-  --foreground: #24292F;
-  --card: #FFFFFF;
-  --card-foreground: #24292F;
-  --popover: #FFFFFF;
-  --popover-foreground: #24292F;
-  --primary: #0969DA;
+  /* Claude-Inspired Color Palette */
+  --background: #F4F3EE;
+  --foreground: #3D3929;
+  --card: #FEFEFE;
+  --card-foreground: #3D3929;
+  --popover: #FEFEFE;
+  --popover-foreground: #3D3929;
+  --primary: #DA7756;
   --primary-foreground: #FFFFFF;
+  --primary-hover: #C15F3C;
   --secondary: #656D76;
   --secondary-foreground: #FFFFFF;
-  --muted: #F6F8FA;
-  --muted-foreground: #656D76;
-  --accent: #F6F8FA;
-  --accent-foreground: #24292F;
+  --muted: #F4F3EE;
+  --muted-foreground: #3D3929;
+  --accent: #B87555;
+  --accent-foreground: #FFFFFF;
+  --accent-hover: #A66545;
   --destructive: #CF222E;
   --destructive-foreground: #FFFFFF;
-  --success: #1F883D;
-  --success-foreground: #FFFFFF;
-  --warning: #BF8700;
-  --warning-foreground: #FFFFFF;
-  --border: #D1D9E0;
-  --input: #FFFFFF;
-  --input-background: #FFFFFF;
-  --switch-background: #D1D9E0;
+  --success: #FFD166;
+  --success-foreground: #3D3929;
+  --warning: #FFD166;
+  --warning-foreground: #3D3929;
+  --border: #3D3929;
+  --input: #FEFEFE;
+  --input-background: #FEFEFE;
+  --switch-background: #3D3929;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #0969DA;
-  --chart-1: #0969DA;
-  --chart-2: #656D76;
-  --chart-3: #1F883D;
-  --chart-4: #CF222E;
-  --chart-5: #BF8700;
+  --ring: #DA7756;
+  --chart-1: #DA7756;
+  --chart-2: #4CC9F0;
+  --chart-3: #FFD166;
+  --chart-4: #9D4EDD;
+  --chart-5: #F28482;
   --radius: 6px;
-  --sidebar: #F6F8FA;
-  --sidebar-foreground: #24292F;
-  --sidebar-primary: #0969DA;
+  --sidebar: #F4F3EE;
+  --sidebar-foreground: #3D3929;
+  --sidebar-primary: #DA7756;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F6F8FA;
-  --sidebar-accent-foreground: #656D76;
-  --sidebar-border: #D1D9E0;
-  --sidebar-ring: #0969DA;
+  --sidebar-accent: #F4F3EE;
+  --sidebar-accent-foreground: #3D3929;
+  --sidebar-border: #3D3929;
+  --sidebar-ring: #DA7756;
 }
 
 .dark {
-  --background: #0D1117;
+  --background: #0D0D0D;
   --foreground: #F0F6FC;
   --card: #161B22;
   --card-foreground: #F0F6FC;
   --popover: #161B22;
   --popover-foreground: #F0F6FC;
-  --primary: #1F6FEB;
+  --primary: #C15F3C;
+  --primary-hover: #BD5D3A;
   --primary-foreground: #FFFFFF;
   --secondary: #8B949E;
   --secondary-foreground: #FFFFFF;
   --muted: #21262D;
   --muted-foreground: #8B949E;
-  --accent: #21262D;
-  --accent-foreground: #F0F6FC;
+  --accent: #C88765;
+  --accent-foreground: #FFFFFF;
+  --accent-hover: #B87555;
   --destructive: #F85149;
   --destructive-foreground: #FFFFFF;
-  --success: #3FB950;
-  --success-foreground: #FFFFFF;
-  --warning: #D29922;
-  --warning-foreground: #FFFFFF;
+  --success: #FFD166;
+  --success-foreground: #3D3929;
+  --warning: #FFD166;
+  --warning-foreground: #3D3929;
   --border: #30363D;
   --input: #161B22;
   --input-background: #161B22;
   --switch-background: #30363D;
-  --ring: #1F6FEB;
-  --chart-1: #1F6FEB;
-  --chart-2: #8B949E;
-  --chart-3: #3FB950;
-  --chart-4: #F85149;
-  --chart-5: #D29922;
-  --sidebar: #0D1117;
+  --ring: #C15F3C;
+  --chart-1: #C15F3C;
+  --chart-2: #4CC9F0;
+  --chart-3: #FFD166;
+  --chart-4: #9D4EDD;
+  --chart-5: #F28482;
+  --sidebar: #0D0D0D;
   --sidebar-foreground: #F0F6FC;
-  --sidebar-primary: #1F6FEB;
+  --sidebar-primary: #C15F3C;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #21262D;
   --sidebar-accent-foreground: #F0F6FC;
   --sidebar-border: #30363D;
-  --sidebar-ring: #1F6FEB;
+  --sidebar-ring: #C15F3C;
 }
 
 @theme inline {
@@ -102,12 +108,14 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-hover: var(--accent-hover);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
@@ -154,72 +162,116 @@
 }
 
 /**
- * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
+ * Base typography.
  */
 @layer base {
-  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
-    h1 {
-      font-size: 2.5rem; /* 40px */
-      font-weight: 600;
-      line-height: 1.2;
-      letter-spacing: -0.025em;
-    }
+  h1 {
+    font-size: 2.5rem; /* 40px */
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    font-family: var(--font-family-headings);
+  }
 
-    h2 {
-      font-size: 2rem; /* 32px */
-      font-weight: 600;
-      line-height: 1.25;
-      letter-spacing: -0.025em;
-    }
+  h2 {
+    font-size: 2rem; /* 32px */
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+    font-family: var(--font-family-headings);
+  }
 
-    h3 {
-      font-size: 1.5rem; /* 24px */
-      font-weight: 600;
-      line-height: 1.33;
-    }
+  h3 {
+    font-size: 1.5rem; /* 24px */
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+    font-family: var(--font-family);
+  }
 
-    h4 {
-      font-size: 1.125rem; /* 18px */
-      font-weight: 600;
-      line-height: 1.44;
-    }
+  h4 {
+    font-size: 1.125rem; /* 18px */
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+    font-family: var(--font-family);
+  }
 
-    p {
-      font-size: 1rem; /* 16px */
-      font-weight: 400;
-      line-height: 1.5;
-    }
+  h5 {
+    font-size: 1rem; /* 16px */
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+    font-family: var(--font-family);
+  }
 
-    label {
-      font-size: 0.875rem; /* 14px */
-      font-weight: 500;
-      line-height: 1.43;
-    }
+  h6 {
+    font-size: 0.875rem; /* 14px */
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+    font-family: var(--font-family);
+  }
 
-    button {
-      font-size: 0.875rem; /* 14px */
-      font-weight: 500;
-      line-height: 1.43;
-    }
+  p {
+    font-size: 1rem; /* 16px */
+    font-weight: 400;
+    line-height: 1.6;
+    letter-spacing: 0.0625em;
+  }
 
-    input, textarea {
-      font-size: 0.875rem; /* 14px */
-      font-weight: 400;
-      line-height: 1.43;
-    }
+  label {
+    font-size: 0.875rem; /* 14px */
+    font-weight: 500;
+    line-height: 1.43;
+  }
 
-    .text-small {
-      font-size: 0.875rem; /* 14px */
-      line-height: 1.43;
-    }
+  button {
+    font-size: 0.875rem; /* 14px */
+    font-weight: 500;
+    line-height: 1.43;
+  }
 
-    .text-tiny {
-      font-size: 0.75rem; /* 12px */
-      line-height: 1.33;
-    }
+  input, textarea {
+    font-size: 0.875rem; /* 14px */
+    font-weight: 400;
+    line-height: 1.43;
+  }
+
+  .text-small {
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.43;
+  }
+
+  .text-tiny {
+    font-size: 0.75rem; /* 12px */
+    line-height: 1.33;
   }
 }
 
 html {
   font-size: var(--font-size);
+}
+
+/* Interaction styles */
+.hover-lift {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.header-scrolled {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+.nav-button {
+  @apply hover:bg-accent/10 hover:text-accent active:bg-primary/10 active:text-primary focus:ring-primary;
 }

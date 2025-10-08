@@ -3,19 +3,21 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
+import { SubscriptionBadge } from "./ui/SubscriptionBadge";
 import { ThemeToggle } from "./ui/ThemeToggle";
 import { useApp } from "../contexts/AppContext";
 import { auth } from "../lib/api";
 import { isAdmin } from "../lib/admin";
-import { Search, Plus, Menu, User, Settings, LogOut, Home, Compass, BookmarkPlus, Package, Shield, Upload, Users, BarChart, Eye } from "lucide-react";
+import { Search, Plus, Menu, User, Settings, LogOut, Home, Compass, BookmarkPlus, Package, Shield, Upload, Users, BarChart, Eye, DollarSign, Gift, Activity } from "lucide-react";
 
 interface NavigationProps {
-    user?: {
-      name: string;
-      username: string;
-      reputation: number;
-      subscriptionPlan?: 'free' | 'pro';
-    } | null;
+     user?: {
+       name: string;
+       username: string;
+       reputation: number;
+       role?: 'general' | 'pro' | 'admin';
+       subscriptionStatus?: 'active' | 'cancelled' | 'past_due';
+     } | null;
    onAuthClick: () => void;
    onProfileClick?: () => void;
    onCreateClick?: () => void;
@@ -23,9 +25,9 @@ interface NavigationProps {
    onHomeClick?: () => void;
    onSavedClick?: () => void;
    onSettingsClick?: () => void;
-   onIndustryPacksClick?: () => void;
+   onPromptPacksClick?: () => void;
    onAdminClick?: (feature: string) => void;
-}
+ }
 
 export function Navigation({
    user,
@@ -36,9 +38,9 @@ export function Navigation({
    onHomeClick,
    onSavedClick,
    onSettingsClick,
-   onIndustryPacksClick,
+   onPromptPacksClick,
    onAdminClick
-}: NavigationProps) {
+ }: NavigationProps) {
    const { state, dispatch } = useApp();
    const currentUser = state.user;
   const [searchQuery, setSearchQuery] = useState(
@@ -72,29 +74,29 @@ export function Navigation({
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-6">
-              <Button 
-                variant="ghost" 
-                className="flex items-center gap-2"
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2 nav-button group"
                 onClick={onHomeClick}
               >
-                <Home className="h-4 w-4" />
+                <Home className="h-4 w-4 group-hover:text-accent" />
                 Home
               </Button>
-              <Button 
-                variant="ghost" 
-                className="flex items-center gap-2"
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2 nav-button group"
                 onClick={onExploreClick}
               >
-                <Compass className="h-4 w-4" />
+                <Compass className="h-4 w-4 group-hover:text-accent" />
                 Explore
               </Button>
-              <Button 
-                variant="ghost" 
-                className="flex items-center gap-2"
-                onClick={onIndustryPacksClick}
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2 nav-button group"
+                onClick={onPromptPacksClick}
               >
-                <Package className="h-4 w-4" />
-                Industry Packs
+                <Package className="h-4 w-4 group-hover:text-accent" />
+                Prompt Packs
               </Button>
             </nav>
           </div>
@@ -159,6 +161,10 @@ export function Navigation({
                         Admin Tools
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onAdminClick?.('dashboard')}>
+                        <BarChart className="mr-2 h-4 w-4" />
+                        Dashboard
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onAdminClick?.('bulk-import')}>
                         <Upload className="mr-2 h-4 w-4" />
                         Bulk Import Prompts
@@ -167,15 +173,33 @@ export function Navigation({
                         <Eye className="mr-2 h-4 w-4" />
                         UI Playground
                       </DropdownMenuItem>
-                      <DropdownMenuItem disabled>
+                      <DropdownMenuItem onClick={() => onAdminClick?.('content-moderation')}>
+                        <Shield className="mr-2 h-4 w-4" />
+                        Content Moderation
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onAdminClick?.('user-management')}>
                         <Users className="mr-2 h-4 w-4" />
                         Manage Users
-                        <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
                       </DropdownMenuItem>
-                      <DropdownMenuItem disabled>
+                      <DropdownMenuItem onClick={() => onAdminClick?.('analytics-reports')}>
                         <BarChart className="mr-2 h-4 w-4" />
-                        Platform Analytics
-                        <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
+                        Analytics & Reports
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onAdminClick?.('subscription-management')}>
+                        <DollarSign className="mr-2 h-4 w-4" />
+                        Subscription Management
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onAdminClick?.('invite-affiliate-management')}>
+                        <Gift className="mr-2 h-4 w-4" />
+                        Invite & Affiliate Management
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onAdminClick?.('platform-settings')}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        Platform Settings
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onAdminClick?.('system-logs-health')}>
+                        <Activity className="mr-2 h-4 w-4" />
+                        System Logs & Health
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -200,11 +224,12 @@ export function Navigation({
                       </div>
                       <div className="hidden md:block text-left">
                         <div className="text-sm font-medium flex items-center gap-2">
-                          {user.name}
-                          {user.subscriptionPlan === 'pro' && (
-                            <Badge variant="secondary" className="text-xs py-0 px-1">PRO</Badge>
-                          )}
-                        </div>
+                            {user.name}
+                            <SubscriptionBadge
+                              role={user.role || 'general'}
+                              subscriptionStatus={user.subscriptionStatus}
+                            />
+                          </div>
                         <div className="text-xs text-muted-foreground">
                           {user.reputation} rep
                         </div>
@@ -215,9 +240,10 @@ export function Navigation({
                     <div className="p-2">
                       <div className="font-medium flex items-center gap-2">
                         {user.name}
-                        {user.subscriptionPlan === 'pro' && (
-                          <Badge variant="secondary" className="text-xs py-0 px-1">PRO</Badge>
-                        )}
+                        <SubscriptionBadge
+                          role={user.role || 'general'}
+                          subscriptionStatus={user.subscriptionStatus}
+                        />
                       </div>
                       <div className="text-sm text-muted-foreground">@{user.username}</div>
                       <div className="text-xs text-muted-foreground mt-1">
@@ -291,27 +317,27 @@ export function Navigation({
               </div>
               <Button
                 variant="ghost"
-                className="justify-start"
+                className="justify-start nav-button group"
                 onClick={onHomeClick}
               >
-                <Home className="mr-2 h-4 w-4" />
+                <Home className="mr-2 h-4 w-4 group-hover:text-accent" />
                 Home
               </Button>
               <Button
                 variant="ghost"
-                className="justify-start"
+                className="justify-start nav-button group"
                 onClick={onExploreClick}
               >
-                <Compass className="mr-2 h-4 w-4" />
+                <Compass className="mr-2 h-4 w-4 group-hover:text-accent" />
                 Explore
               </Button>
               <Button
                 variant="ghost"
-                className="justify-start"
-                onClick={onIndustryPacksClick}
+                className="justify-start nav-button group"
+                onClick={onPromptPacksClick}
               >
-                <Package className="mr-2 h-4 w-4" />
-                Industry Packs
+                <Package className="mr-2 h-4 w-4 group-hover:text-accent" />
+                Prompt Packs
               </Button>
             </nav>
           </div>

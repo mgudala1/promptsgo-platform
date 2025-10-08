@@ -19,7 +19,7 @@ export function Footer({
   onNavigateToAffiliate
 }: FooterProps) {
   return (
-    <footer className="bg-slate-50 dark:bg-slate-900/50 py-16 mt-16">
+    <footer className="bg-slate-50 dark:bg-slate-900/50 py-20 mt-12">
       <div className="container mx-auto px-4">
         {/* Subtle separator line */}
         <div className="border-t border-border/10 mb-12"></div>
@@ -58,17 +58,17 @@ export function Footer({
               <h3 className="font-semibold mb-3">Company</h3>
               <ul className="space-y-2 text-muted-foreground">
                 <li>
-                  <button onClick={onNavigateToAbout} className="hover:text-foreground transition-colors">
+                  <button onClick={onNavigateToAbout} className="hover:text-accent active:text-accent transition-colors">
                     About
                   </button>
                 </li>
                 <li>
-                  <button onClick={onNavigateToInvites} className="hover:text-foreground transition-colors">
+                  <button onClick={onNavigateToInvites} className="hover:text-accent active:text-accent transition-colors">
                     Invite Friends
                   </button>
                 </li>
                 <li>
-                  <button onClick={onNavigateToAffiliate} className="hover:text-foreground transition-colors">
+                  <button onClick={onNavigateToAffiliate} className="hover:text-accent active:text-accent transition-colors">
                     Affiliate Program
                   </button>
                 </li>
@@ -80,12 +80,12 @@ export function Footer({
               <h3 className="font-semibold mb-3">Legal</h3>
               <ul className="space-y-2 text-muted-foreground">
                 <li>
-                  <button onClick={onNavigateToTerms} className="hover:text-foreground transition-colors">
+                  <button onClick={onNavigateToTerms} className="hover:text-accent active:text-accent transition-colors">
                     Terms
                   </button>
                 </li>
                 <li>
-                  <button onClick={onNavigateToPrivacy} className="hover:text-foreground transition-colors">
+                  <button onClick={onNavigateToPrivacy} className="hover:text-accent active:text-accent transition-colors">
                     Privacy
                   </button>
                 </li>
@@ -97,7 +97,7 @@ export function Footer({
               <h3 className="font-semibold mb-3">Support</h3>
               <ul className="space-y-2 text-muted-foreground">
                 <li>
-                  <a href="mailto:support@promptsgo.com" className="hover:text-foreground transition-colors">
+                  <a href="mailto:support@promptsgo.com" className="hover:text-accent active:text-accent transition-colors">
                     Contact
                   </a>
                 </li>

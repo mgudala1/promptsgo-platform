@@ -33,6 +33,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // Database Types
 export interface Database {
   public: {
+    Enums: {
+      user_role: 'general' | 'pro' | 'admin'
+      subscription_status: 'active' | 'cancelled' | 'past_due'
+    }
     Tables: {
       profiles: {
         Row: {
@@ -45,7 +49,11 @@ export interface Database {
           github: string | null
           twitter: string | null
           subscription_plan: 'free' | 'pro'
-          invites_remaining: number
+          role: Database['public']['Enums']['user_role'] | null
+          subscription_status: Database['public']['Enums']['subscription_status'] | null
+          invites_remaining: number | null
+          is_affiliate: boolean | null
+          save_count: number | null
           created_at: string
           updated_at: string
         }
@@ -59,7 +67,11 @@ export interface Database {
           github?: string | null
           twitter?: string | null
           subscription_plan?: 'free' | 'pro'
-          invites_remaining?: number
+          role?: Database['public']['Enums']['user_role'] | null
+          subscription_status?: Database['public']['Enums']['subscription_status'] | null
+          invites_remaining?: number | null
+          is_affiliate?: boolean | null
+          save_count?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -73,7 +85,11 @@ export interface Database {
           github?: string | null
           twitter?: string | null
           subscription_plan?: 'free' | 'pro'
-          invites_remaining?: number
+          role?: Database['public']['Enums']['user_role'] | null
+          subscription_status?: Database['public']['Enums']['subscription_status'] | null
+          invites_remaining?: number | null
+          is_affiliate?: boolean | null
+          save_count?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -401,7 +417,6 @@ export interface Database {
           created_by: string
           is_official: boolean
           tags: string[]
-          download_count: number
           created_at: string
           updated_at: string
         }
@@ -415,7 +430,6 @@ export interface Database {
           created_by: string
           is_official?: boolean
           tags?: string[]
-          download_count?: number
           created_at?: string
           updated_at?: string
         }
@@ -429,7 +443,6 @@ export interface Database {
           created_by?: string
           is_official?: boolean
           tags?: string[]
-          download_count?: number
           created_at?: string
           updated_at?: string
         }

@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { SubscriptionBadge } from "./ui/SubscriptionBadge";
 import { PromptCard } from "./PromptCard";
 import { useApp } from "../contexts/AppContext";
 import { ArrowRight, Sparkles, GitFork, Star, User, Package, Lock, Crown } from "lucide-react"; // cleaned imports
-import { getSubscriptionLimits, getUserSubscription, SubscriptionData } from "../lib/subscription";
 import { hearts as heartsApi, saves as savesApi } from "../lib/api";
+import { getSaveLimit, canSaveMore } from "../lib/limits";
 
 interface HomePageProps {
   onGetStarted: () => void;
@@ -26,43 +27,14 @@ const categories = [
 
 export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePageProps) {
   const { state, dispatch } = useApp();
-  const [userSubscription, setUserSubscription] = useState<SubscriptionData | null>(null);
-  const [subscriptionLimits, setSubscriptionLimits] = useState(getSubscriptionLimits(null));
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-  // Load user's subscription
-  useEffect(() => {
-    const loadSubscription = async () => {
-      if (state.user) {
-        try {
-          const subscription = await getUserSubscription(state.user.id);
-          setUserSubscription(subscription);
-          setSubscriptionLimits(getSubscriptionLimits(subscription));
-        } catch (err) {
-          console.error('Error loading subscription:', err);
-        }
-      } else {
-        setSubscriptionLimits(getSubscriptionLimits(null));
-      }
-    };
-
-    loadSubscription();
-  }, [state.user]);
-
-  // Get trending prompts (sorted by hearts), filtered by category and search if selected
+  // Get trending prompts (sorted by hearts), filtered by local category selection
   const trendingPrompts = state.prompts
     .slice()
     .filter(prompt => {
-      if (state.searchFilters.categories.length > 0 && !state.searchFilters.categories.includes(prompt.category)) return false;
-
-      if (state.searchFilters.query && typeof state.searchFilters.query === 'string' && state.searchFilters.query.trim()) {
-        const query = state.searchFilters.query.toLowerCase();
-        return prompt.title.toLowerCase().includes(query) ||
-               prompt.description.toLowerCase().includes(query) ||
-               prompt.content.toLowerCase().includes(query) ||
-               prompt.tags.some(tag => tag.toLowerCase().includes(query)) ||
-               prompt.author.name.toLowerCase().includes(query) ||
-               prompt.author.username.toLowerCase().includes(query);
-      }
+      // Only filter by category if categories are selected
+      if (selectedCategories.length > 0 && !selectedCategories.includes(prompt.category)) return false;
       return true;
     })
     .sort((a, b) => b.hearts - a.hearts)
@@ -79,9 +51,9 @@ export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePagePro
       const result = await heartsApi.toggle(promptId);
       console.log('Heart result:', result);
 
-      if (!result.error) {
+      if (!result.error && result.data) {
         // Update global state immediately for instant visual feedback
-        if (result.action === 'added') {
+        if (result.data.action === 'added') {
           console.log('Adding heart - updating UI');
           dispatch({ type: 'HEART_PROMPT', payload: { promptId } });
         } else {
@@ -102,10 +74,11 @@ export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePagePro
       return;
     }
 
-    // Check subscription limits
-    const userSaves = state.prompts.filter(p => p.isSaved).length;
-    if (subscriptionLimits.saves !== 'unlimited' && userSaves >= subscriptionLimits.saves) {
-      alert(`You've reached your save limit (${subscriptionLimits.saves}). Upgrade to Pro for unlimited saves!`);
+    // Check role-based save limits
+    const userSaves = state.saves.length;
+    const canSave = canSaveMore(state.user, userSaves);
+    if (!canSave.allowed) {
+      alert(canSave.message || 'You have reached your save limit. Upgrade to Pro for unlimited saves!');
       return;
     }
 
@@ -114,9 +87,9 @@ export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePagePro
       const result = await savesApi.toggle(promptId);
       console.log('Save result:', result);
 
-      if (!result.error) {
+      if (!result.error && result.data) {
         // Update global state immediately for instant visual feedback
-        if (result.action === 'added') {
+        if (result.data.action === 'added') {
           console.log('Adding save - updating UI');
           dispatch({ type: 'SAVE_PROMPT', payload: { promptId } });
         } else {
@@ -132,10 +105,10 @@ export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePagePro
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="container mx-auto px-4 py-6">
       {/* Hero Section */}
-      <section className="relative py-12 px-4">
-        <div className="container mx-auto text-center max-w-4xl">
+      <section className="relative py-12 md:py-16">
+        <div className="text-center max-w-4xl mx-auto">
           <div className="flex items-center justify-center gap-2 mb-6">
             <Badge variant="secondary" className="px-3 py-1">
               <Sparkles className="h-3 w-3 mr-1" />
@@ -162,23 +135,22 @@ export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePagePro
             </Button>
           </div>
 
-          {/* Subscription Status */}
+          {/* Role Status */}
           {state.user && (
             <div className="flex items-center justify-center gap-2 mb-4">
-              {userSubscription?.status === 'active' ? (
-                <Badge className="bg-gradient-to-r from-primary to-primary/80">
-                  <Crown className="h-3 w-3 mr-1" />
-                  Pro Member
-                </Badge>
-              ) : (
+              <SubscriptionBadge
+                role={state.user.role || 'general'}
+                subscriptionStatus={state.user.subscriptionStatus}
+              />
+              {(state.user.role || 'general') === 'general' && (
                 <Badge variant="secondary">
                   Free Plan
                 </Badge>
               )}
               <span className="text-xs text-muted-foreground">
-                {subscriptionLimits.saves === 'unlimited'
+                {getSaveLimit(state.user) === 'unlimited'
                   ? 'Unlimited saves'
-                  : `${subscriptionLimits.saves} saves remaining`
+                  : `${state.user.saveCount}/${getSaveLimit(state.user)} saves used`
                 }
               </span>
             </div>
@@ -191,38 +163,35 @@ export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePagePro
       </section>
 
       {/* Category Filters */}
-      <section className="py-8 px-4 border-b">
-        <div className="container mx-auto">
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button
-              variant={state.searchFilters.categories.length === 0 ? "default" : "outline"}
-              onClick={() => dispatch({ type: 'SET_SEARCH_FILTERS', payload: { categories: [] } })}
-              className="rounded-full"
-            >
-              All Categories
-            </Button>
-            {categories.map((category) => (
-               <Button
-                 key={category.id}
-                 variant={state.searchFilters.categories.includes(category.name) ? "default" : "outline"}
-                 onClick={() => {
-                   const newCategories = state.searchFilters.categories.includes(category.name)
-                     ? state.searchFilters.categories.filter(c => c !== category.name)
-                     : [...state.searchFilters.categories, category.name];
-                   dispatch({ type: 'SET_SEARCH_FILTERS', payload: { categories: newCategories } });
-                 }}
-                 className="rounded-full"
-               >
-                 {category.name}
-               </Button>
-             ))}
-          </div>
+      <section className="py-12 md:py-16 border-b">
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Button
+            variant={selectedCategories.length === 0 ? "default" : "outline"}
+            onClick={() => setSelectedCategories([])}
+            className="rounded-full"
+          >
+            All Categories
+          </Button>
+          {categories.map((category) => (
+             <Button
+               key={category.id}
+               variant={selectedCategories.includes(category.name) ? "default" : "outline"}
+               onClick={() => {
+                 const newCategories = selectedCategories.includes(category.name)
+                   ? selectedCategories.filter(c => c !== category.name)
+                   : [...selectedCategories, category.name];
+                 setSelectedCategories(newCategories);
+               }}
+               className="rounded-full"
+             >
+               {category.name}
+             </Button>
+           ))}
         </div>
       </section>
 
       {/* Trending Section */}
-      <section className="py-12 px-4">
-        <div className="container mx-auto">
+      <section className="py-12 md:py-16">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-3xl mb-2">Featured Portfolios</h2>
@@ -246,7 +215,8 @@ export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePagePro
                 author={{
                   name: prompt.author.name,
                   username: prompt.author.username,
-                  subscriptionPlan: prompt.author.subscriptionPlan
+                  role: prompt.author.role,
+                  subscriptionStatus: prompt.author.subscriptionStatus
                 }}
                 category={prompt.category}
                 tags={prompt.tags}
@@ -284,12 +254,10 @@ export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePagePro
               />
             ))}
           </div>
-        </div>
       </section>
 
       {/* Features */}
-      <section className="py-12 px-4 bg-muted/50 mb-32">
-        <div className="container mx-auto">
+      <section className="py-12 md:py-16 bg-muted/50">
           <div className="text-center mb-12">
             <h2 className="text-3xl mb-4">Professional Features</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -313,7 +281,7 @@ export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePagePro
             <div className="bg-card p-6 rounded-lg border relative">
               <div className="absolute top-4 right-4">
                 <Badge variant="secondary" className="text-xs">
-                  <Lock className="h-3 w-3 mr-1" />
+                  <Crown className="h-3 w-3 mr-1" />
                   Pro
                 </Badge>
               </div>
@@ -348,13 +316,12 @@ export function HomePage({ onGetStarted, onExplore, onPromptClick }: HomePagePro
               <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                 <Package className="h-5 w-5 text-primary" />
               </div>
-              <h3 className="text-lg mb-2">Premium Industry Packs</h3>
+              <h3 className="text-lg mb-2">Prompt Packs</h3>
               <p className="text-sm text-muted-foreground">
-                Access exclusive, professionally curated prompt packs for your industry
+                Create and sell curated prompt packs as a Pro user
               </p>
             </div>
           </div>
-        </div>
       </section>
 
     </div>

@@ -3,24 +3,21 @@
  */
 
 import { User } from './types';
-import { isAdmin, hasProFeatures } from './admin';
+import { isAdmin } from './admin';
+import { getUserLimits, hasFeatureAccess } from './permissions';
 
 /**
- * Get save limit based on user's subscription
+ * Get save limit based on user's role
  */
 export function getSaveLimit(user: User | null): number | 'unlimited' {
-  if (!user) return 0;
-  if (isAdmin(user) || hasProFeatures(user)) return 'unlimited';
-  return 10; // Free tier limit
+  return getUserLimits(user).saves;
 }
 
 /**
- * Get fork limit per month based on user's subscription
+ * Get fork limit per month based on user's role
  */
 export function getForkLimit(user: User | null): number | 'unlimited' {
-  if (!user) return 0;
-  if (isAdmin(user) || hasProFeatures(user)) return 'unlimited';
-  return 3; // Free tier limit
+  return getUserLimits(user).forksPerMonth;
 }
 
 /**
@@ -70,11 +67,11 @@ export function canExport(user: User | null): { allowed: boolean; message?: stri
   if (!user) {
     return { allowed: false, message: 'Please sign in to export prompts' };
   }
-  
-  if (isAdmin(user) || hasProFeatures(user)) {
+
+  if (hasFeatureAccess(user, 'exportCollections')) {
     return { allowed: true };
   }
-  
+
   return {
     allowed: false,
     message: 'Export feature is only available for Pro users. Upgrade to unlock!'

@@ -79,7 +79,7 @@ export function SettingsPage({ onBack, onNavigateToSubscription, onNavigateToBil
   };
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-4xl">
+    <div className="container mx-auto px-4 py-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Button variant="ghost" onClick={onBack}>
@@ -94,7 +94,7 @@ export function SettingsPage({ onBack, onNavigateToSubscription, onNavigateToBil
 
       {/* Settings Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Profile
@@ -231,7 +231,7 @@ export function SettingsPage({ onBack, onNavigateToSubscription, onNavigateToBil
                 {state.user.subscriptionPlan === 'pro' && (
                   <Badge variant="secondary" className="flex items-center gap-1">
                     <Crown className="h-3 w-3" />
-                    PRO
+                    Pro
                   </Badge>
                 )}
               </CardTitle>

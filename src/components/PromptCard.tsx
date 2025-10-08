@@ -1,20 +1,26 @@
+import { useState } from "react";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
+import { SuccessBadge } from "./ui/SuccessBadge";
+import { SubscriptionBadge } from "./ui/SubscriptionBadge";
 import { Button } from "./ui/button";
 import { Heart, Share, BookmarkPlus, GitFork } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { categories } from "../lib/data";
 import { PromptImage } from "../lib/types";
+import { useApp } from '../contexts/AppContext';
+import { hearts } from '../lib/api';
 
 interface PromptCardProps {
-  id: string;
-  title: string;
-  description: string;
-  author: {
-    name: string;
-    username: string;
-    subscriptionPlan?: 'free' | 'pro';
-  };
+   id: string;
+   title: string;
+   description: string;
+   author: {
+     name: string;
+     username: string;
+     role?: 'general' | 'pro' | 'admin';
+     subscriptionStatus?: 'active' | 'cancelled' | 'past_due';
+   };
   category: string;
   tags: string[];
   images?: PromptImage[];
@@ -23,13 +29,14 @@ interface PromptCardProps {
     saves: number;
     forks: number;
   };
+  successRate?: number;
+  successVotesCount?: number;
   isSaved?: boolean;
-  isHearted?: boolean;
   createdAt: string;
   parentAuthor?: {
     name: string;
     username: string;
-    subscriptionPlan?: 'free' | 'pro';
+    role?: 'general' | 'pro' | 'admin';
   };
   onClick?: () => void;
   onHeart?: () => void;
@@ -70,8 +77,9 @@ export function PromptCard({
   tags: _tags,
   images,
   stats,
+  successRate,
+  successVotesCount,
   isSaved = false,
-  isHearted = false,
   createdAt,
   parentAuthor,
   onClick,
@@ -79,6 +87,46 @@ export function PromptCard({
   onSave,
   onShare
 }: PromptCardProps) {
+  const { state, dispatch } = useApp();
+  const [heartAnimating, setHeartAnimating] = useState(false);
+  const [saveAnimating, setSaveAnimating] = useState(false);
+
+  const handleHeart = async () => {
+     if (!state.user) {
+       console.log('User not authenticated');
+       return;
+     }
+
+     // Trigger animation
+     setHeartAnimating(true);
+     setTimeout(() => setHeartAnimating(false), 400);
+
+     console.log('Toggling heart for prompt:', _id, 'Current isHearted:', isHearted);
+     try {
+       const result = await hearts.toggle(_id);
+       console.log('Heart result:', result);
+
+       if (!result.error && result.data) {
+         // Update global state immediately for instant visual feedback
+         if (result.data.action === 'added') {
+           console.log('Adding heart - updating UI');
+           dispatch({ type: 'HEART_PROMPT', payload: { promptId: _id } });
+         } else {
+           console.log('Removing heart - updating UI');
+           dispatch({ type: 'UNHEART_PROMPT', payload: { promptId: _id } });
+         }
+       } else {
+         console.error('Heart error:', result.error);
+       }
+     } catch (error) {
+       console.error('Heart exception:', error);
+     }
+   };
+
+  const isHearted = state.hearts.some(h =>
+    h.userId === state.user?.id && h.promptId === _id
+  );
+
   const categoryData = categories.find(cat =>
     cat.id === category?.toLowerCase() ||
     cat.label?.toLowerCase() === category?.toLowerCase() ||
@@ -87,9 +135,12 @@ export function PromptCard({
   const primaryImage = images?.find(img => img.isPrimary) || images?.[0];
   
   return (
-    <Card 
+    <Card
       className="group hover:shadow-lg transition-all duration-200 cursor-pointer h-full flex flex-col overflow-hidden"
-      onClick={onClick}
+      onClick={() => {
+        console.log('PromptCard onClick fired for id:', _id);
+        onClick?.();
+      }}
     >
       {/* Primary Image */}
       {primaryImage && (
@@ -116,9 +167,10 @@ export function PromptCard({
           <span className="text-muted-foreground">
             {author.username}
           </span>
-          {author.subscriptionPlan === 'pro' && (
-            <Badge variant="secondary" className="text-xs py-0 px-1">PRO</Badge>
-          )}
+          <SubscriptionBadge
+            role={author.role || 'general'}
+            subscriptionStatus={author.subscriptionStatus}
+          />
           <span className="text-xs text-muted-foreground">
             • {getRelativeTime(createdAt)}
           </span>
@@ -138,7 +190,7 @@ export function PromptCard({
           {description}
         </p>
 
-        {/* Category Badge */}
+        {/* Category Badge and Success Badge */}
         <div className="flex items-center gap-2">
           {categoryData ? (
             <Badge
@@ -157,6 +209,14 @@ export function PromptCard({
               {category}
             </Badge>
           ) : null}
+
+          {successRate !== undefined && successRate > 0 && (
+            <SuccessBadge
+              successRate={successRate}
+              voteCount={successVotesCount || 0}
+              size="sm"
+            />
+          )}
         </div>
 
         {/* Stats and Actions */}
@@ -166,40 +226,69 @@ export function PromptCard({
               <GitFork className="h-3 w-3" />
               {stats?.forks || 0}
             </div>
-            <div className="flex items-center gap-1">
-              <BookmarkPlus className="h-3 w-3" />
-              {stats?.saves || 0}
-            </div>
           </div>
 
           <div className="flex items-center gap-2">
             <Button
               size="sm"
               variant="ghost"
-              className="h-8 gap-1 px-2"
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
-                onHeart?.();
+                handleHeart();
               }}
+              className={isHearted ? 'bg-red-50 text-red-600' : ''}
             >
-              <Heart
-                className={`h-3 w-3 ${isHearted ? 'fill-red-500 text-red-500' : ''}`}
-              />
+              <Heart className={`h-3 w-3 mr-2 transition-all duration-300 ease-out ${
+                isHearted
+                  ? 'fill-current scale-110'
+                  : 'scale-100'
+              } ${
+                heartAnimating
+                  ? 'animate-bounce scale-125'
+                  : ''
+              }`}
+              style={{
+                transform: heartAnimating ? 'scale(1.2) rotate(-5deg)' : undefined,
+                transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+              }} />
               {stats?.hearts || 0}
             </Button>
 
             <Button
               size="sm"
               variant="ghost"
-              className="h-8 gap-1 px-2"
+              className="h-8 gap-1 px-2 relative overflow-hidden"
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
+                console.log('Save button clicked for id:', _id);
+
+                // Trigger animation
+                setSaveAnimating(true);
+                setTimeout(() => setSaveAnimating(false), 400);
+
                 onSave?.();
               }}
             >
               <BookmarkPlus
-                className={`h-3 w-3 ${isSaved ? 'fill-primary text-primary' : ''}`}
+                className={`h-3 w-3 transition-all duration-300 ease-out ${
+                  isSaved
+                    ? 'fill-primary text-primary scale-110'
+                    : 'scale-100'
+                } ${
+                  saveAnimating
+                    ? 'animate-bounce scale-125'
+                    : ''
+                }`}
+                style={{
+                  transform: saveAnimating ? 'scale(1.2) rotate(-5deg)' : undefined,
+                  transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                }}
               />
+              <span className={`transition-colors duration-300 ${
+                isSaved ? 'text-primary' : ''
+              } ${saveAnimating ? 'animate-pulse' : ''}`}>
+                {stats?.saves || 0}
+              </span>
             </Button>
 
             <Button
@@ -208,6 +297,7 @@ export function PromptCard({
               className="h-8 px-2"
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
+                console.log('Share button clicked for id:', _id);
                 onShare?.();
               }}
             >

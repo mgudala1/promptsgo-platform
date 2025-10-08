@@ -9,9 +9,10 @@ import { ArrowLeft, CreditCard, Calendar, AlertCircle, CheckCircle, XCircle } fr
 
 interface BillingPageProps {
   onBack: () => void;
+  onNavigateToSubscription?: () => void;
 }
 
-export function BillingPage({ onBack }: BillingPageProps) {
+export function BillingPage({ onBack, onNavigateToSubscription }: BillingPageProps) {
   const { state } = useApp();
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -135,9 +136,14 @@ export function BillingPage({ onBack }: BillingPageProps) {
         {/* Current Subscription */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Current Subscription
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Current Subscription
+              </div>
+              <Button variant="outline" onClick={onNavigateToSubscription}>
+                View Plans
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -188,9 +194,6 @@ export function BillingPage({ onBack }: BillingPageProps) {
               <div className="text-center py-8">
                 <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No active subscription found</p>
-                <Button className="mt-4" onClick={() => window.location.href = '/subscription'}>
-                  View Plans
-                </Button>
               </div>
             )}
           </CardContent>

@@ -123,48 +123,25 @@ export function AffiliateDashboard() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="container mx-auto px-4 py-6 max-w-6xl">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Affiliate Dashboard</h1>
+      <div className="flex items-center gap-4 mb-6">
+        <h1 className="text-3xl font-bold">Affiliate Dashboard</h1>
         <p className="text-muted-foreground">
           Track your performance and access marketing materials to boost your earnings.
         </p>
       </div>
 
-      {/* Current Tier & Progress */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Award className="h-5 w-5" />
-            Current Tier: {stats.tier}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">
-                Progress to {progress.nextTier}: {progress.current}/{progress.target} referrals
-              </span>
-              <Badge className={getTierColor(stats.tier)}>
-                {stats.tier}
-              </Badge>
-            </div>
-            <Progress value={progressPercentage} className="h-3" />
-            <p className="text-xs text-muted-foreground">
-              {progress.target - progress.current} more referrals to reach {progress.nextTier} tier
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="materials">Marketing Materials</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="space-y-6 z-0 mt-6">
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card>
@@ -252,7 +229,7 @@ export function AffiliateDashboard() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="materials" className="space-y-6">
+        <TabsContent value="materials" className="space-y-6 z-0 mt-6">
           {/* Marketing Materials Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {marketingMaterials.map((material) => (
@@ -316,7 +293,68 @@ export function AffiliateDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+          </Tabs>
+        </div>
+
+        {/* Sidebar */}
+        <div>
+          {/* Current Tier & Progress */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Award className="h-5 w-5" />
+                Current Tier: {stats.tier}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">
+                    Progress to {progress.nextTier}: {progress.current}/{progress.target} referrals
+                  </span>
+                  <Badge className={getTierColor(stats.tier)}>
+                    {stats.tier}
+                  </Badge>
+                </div>
+                <Progress value={progressPercentage} className="h-3" />
+                <p className="text-xs text-muted-foreground">
+                  {progress.target - progress.current} more referrals to reach {progress.nextTier} tier
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Key Stats Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Performance Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">{stats.referrals}</div>
+                  <div className="text-xs text-muted-foreground">Referrals</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{stats.conversions}</div>
+                  <div className="text-xs text-muted-foreground">Conversions</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{stats.conversionRate}%</div>
+                  <div className="text-xs text-muted-foreground">Rate</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-yellow-600">${stats.earnings.toFixed(0)}</div>
+                  <div className="text-xs text-muted-foreground">Earnings</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

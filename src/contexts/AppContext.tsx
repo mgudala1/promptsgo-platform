@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { User, Prompt, Comment, Heart, Save, Follow, Collection, Notification, Draft, SearchFilters, Portfolio, PromptPack, PromptFeedback, DigestSettings, UserPackLibrary } from '../lib/types';
+import { User, UserRole, Prompt, Comment, Heart, Save, Follow, Collection, Notification, Draft, SearchFilters, Portfolio, PromptPack, PromptFeedback, DigestSettings, UserPackLibrary } from '../lib/types';
 import { prompts, comments, promptFeedbacks, promptPacks } from '../lib/data';
 import { prompts as promptsAPI } from '../lib/api';
 import { supabase } from '../lib/supabase';
-import { isAdmin, getInviteLimit } from '../lib/admin';
+import { profiles } from '../lib/api';
+import { getInviteLimit, ADMIN_EMAILS } from '../lib/admin';
+import { getUserSubscription } from '../lib/subscription';
 
 interface AppState {
   user: User | null;
@@ -543,7 +545,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('theme', state.theme);
   }, [state.theme]);
 
-  // Listen for auth state changes - SIMPLIFIED
+  // Listen for auth state changes - UPDATED FOR ROLE SYSTEM
   useEffect(() => {
     let mounted = true;
 
@@ -555,35 +557,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession();
 
         if (session?.user && mounted) {
-          // Create basic user from session
-          const user: User = {
-            id: session.user.id,
-            username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
-            email: session.user.email || '',
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-            bio: '',
-            reputation: 0,
-            createdAt: session.user.created_at || new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-            badges: [],
-            skills: [],
-            subscriptionPlan: 'free' as const,
-            saveCount: 0,
-            invitesRemaining: 5,
-            isAdmin: false,
-            isAffiliate: false
-          };
-
-          // Check and apply admin privileges
-          if (isAdmin(user)) {
-            user.subscriptionPlan = 'pro';
-            user.reputation = 1000;
-            user.invitesRemaining = getInviteLimit(user);
-            user.isAdmin = true;
-            user.isAffiliate = true;
-          }
-
-          dispatch({ type: 'SET_USER', payload: user });
+          await loadUserProfile(session.user);
         }
       } catch (err) {
         console.error('[AppContext] Error getting initial session:', err);
@@ -598,35 +572,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
 
         if (event === 'SIGNED_IN' && session?.user) {
-          // Create basic user from session
-          const user: User = {
-            id: session.user.id,
-            username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
-            email: session.user.email || '',
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-            bio: '',
-            reputation: 0,
-            createdAt: session.user.created_at || new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-            badges: [],
-            skills: [],
-            subscriptionPlan: 'free' as const,
-            saveCount: 0,
-            invitesRemaining: 5,
-            isAdmin: false,
-            isAffiliate: false
-          };
-
-          // Check and apply admin privileges
-          if (isAdmin(user)) {
-            user.subscriptionPlan = 'pro';
-            user.reputation = 1000;
-            user.invitesRemaining = getInviteLimit(user);
-            user.isAdmin = true;
-            user.isAffiliate = true;
-          }
-
-          dispatch({ type: 'SET_USER', payload: user });
+          await loadUserProfile(session.user);
         }
         else if (event === 'SIGNED_OUT') {
           dispatch({ type: 'SET_USER', payload: null });
@@ -651,6 +597,205 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Load user profile with role assignment logic
+  const loadUserProfile = async (authUser: any) => {
+    try {
+      console.log('[loadUserProfile] Starting for authUser:', { id: authUser.id, email: authUser.email });
+
+      // TEMPORARY ADMIN BYPASS: Skip all database queries for admin emails
+      if (authUser.email && ADMIN_EMAILS.includes(authUser.email)) {
+        console.log('[loadUserProfile] Admin bypass activated for email:', authUser.email);
+
+        const user: User = {
+          id: authUser.id,
+          username: authUser.user_metadata?.username || authUser.email?.split('@')[0] || 'user',
+          email: authUser.email || '',
+          name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+          bio: '',
+          reputation: 0,
+          createdAt: authUser.created_at || new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
+          badges: [],
+          skills: [],
+          role: 'admin',
+          subscriptionStatus: 'active',
+          saveCount: 0,
+          invitesRemaining: 999,
+          isAffiliate: false
+        };
+
+        dispatch({ type: 'SET_USER', payload: user });
+        return;
+      }
+
+      // First try to get existing profile
+      const { data: profile, error } = await profiles.get(authUser.id);
+
+      if (profile && !error) {
+        console.log('[loadUserProfile] Existing profile found:', { role: profile.role, email: profile.email, subscription_status: profile.subscription_status });
+
+        // Profile exists, use it but ensure role is set correctly
+        const user: User = {
+          id: profile.id,
+          username: profile.username,
+          email: profile.email,
+          name: profile.name,
+          bio: profile.bio || '',
+          reputation: profile.reputation || 0,
+          createdAt: profile.created_at,
+          lastLogin: new Date().toISOString(),
+          badges: profile.badges || [],
+          skills: profile.skills || [],
+          role: profile.role, // Keep as is, will be set below
+          subscriptionStatus: profile.subscription_status || 'active',
+          saveCount: profile.save_count || 0,
+          invitesRemaining: profile.invites_remaining || 5,
+          isAffiliate: profile.is_affiliate || false,
+          website: profile.website,
+          github: profile.github,
+          twitter: profile.twitter
+        };
+
+        // Fetch current subscription status to determine role
+        const { data: subscription } = await getUserSubscription(user.id);
+        const currentSubscriptionStatus = subscription?.status || user.subscriptionStatus;
+
+        console.log('[loadUserProfile] Subscription status:', currentSubscriptionStatus);
+
+        // Set role dynamically: admin if in whitelist, pro if active subscription, general otherwise
+        if (user.email && ADMIN_EMAILS.includes(user.email)) {
+          user.role = 'admin';
+          console.log('[loadUserProfile] Setting role to admin');
+        } else if (currentSubscriptionStatus === 'active') {
+          user.role = 'pro';
+          console.log('[loadUserProfile] Setting role to pro due to active subscription');
+        } else {
+          user.role = 'general';
+          console.log('[loadUserProfile] Setting role to general');
+        }
+
+        user.subscriptionStatus = currentSubscriptionStatus;
+
+        // Update invites remaining based on role
+        user.invitesRemaining = getInviteLimit(user);
+
+        console.log('[loadUserProfile] Final user role:', user.role);
+
+        dispatch({ type: 'SET_USER', payload: user });
+
+        // Fetch all prompts from database
+        const { data: fetchedPrompts, error: promptsError } = await promptsAPI.getAll();
+        if (fetchedPrompts && !promptsError) {
+          // Transform the data to match Prompt interface (user_id -> author)
+          const transformedPrompts = fetchedPrompts.map(prompt => ({
+            ...prompt,
+            author: prompt.user_id, // Rename user_id to author
+            user_id: undefined // Remove the user_id field
+          }));
+          dispatch({ type: 'SET_PROMPTS', payload: transformedPrompts });
+        } else {
+          console.error('[loadUserProfile] Error fetching prompts:', promptsError);
+        }
+      } else {
+        console.log('[loadUserProfile] No existing profile found, creating new one');
+
+        // Profile doesn't exist, create new one
+        let role: UserRole = 'general';
+        let invitesRemaining = 5;
+        let subscriptionStatus: 'active' | 'cancelled' | 'past_due' = 'active';
+
+        // Fetch current subscription status
+        const { data: subscription } = await getUserSubscription(authUser.id);
+        if (subscription) {
+          subscriptionStatus = subscription.status;
+        }
+
+        console.log('[loadUserProfile] New profile subscription status:', subscriptionStatus);
+
+        // Set role based on logic
+        if (authUser.email && ADMIN_EMAILS.includes(authUser.email)) {
+          role = 'admin';
+          invitesRemaining = 999;
+          console.log('[loadUserProfile] New profile setting role to admin');
+        } else if (subscriptionStatus === 'active') {
+          role = 'pro';
+          console.log('[loadUserProfile] New profile setting role to pro');
+        } else {
+          role = 'general';
+          console.log('[loadUserProfile] New profile setting role to general');
+        }
+
+        const newProfile = {
+          id: authUser.id,
+          username: authUser.user_metadata?.username || authUser.email?.split('@')[0] || 'user',
+          email: authUser.email || '',
+          name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+          bio: '',
+          reputation: 0,
+          created_at: authUser.created_at || new Date().toISOString(),
+          last_login: new Date().toISOString(),
+          badges: [],
+          skills: [],
+          role,
+          subscription_status: subscriptionStatus,
+          save_count: 0,
+          invites_remaining: invitesRemaining,
+          is_affiliate: false
+        };
+
+        console.log('[loadUserProfile] Creating new profile with role:', role);
+
+        // Create the profile
+        const { data: createdProfile, error: createError } = await profiles.create(newProfile);
+
+        if (createdProfile && !createError) {
+          const user: User = {
+            id: createdProfile.id,
+            username: createdProfile.username,
+            email: createdProfile.email,
+            name: createdProfile.name,
+            bio: createdProfile.bio || '',
+            reputation: createdProfile.reputation || 0,
+            createdAt: createdProfile.created_at,
+            lastLogin: new Date().toISOString(),
+            badges: createdProfile.badges || [],
+            skills: createdProfile.skills || [],
+            role: createdProfile.role || 'general',
+            subscriptionStatus: createdProfile.subscription_status,
+            saveCount: createdProfile.save_count || 0,
+            invitesRemaining: createdProfile.invites_remaining || 5,
+            isAffiliate: createdProfile.is_affiliate || false,
+            website: createdProfile.website,
+            github: createdProfile.github,
+            twitter: createdProfile.twitter
+          };
+
+          console.log('[loadUserProfile] New profile created with final role:', user.role);
+
+          dispatch({ type: 'SET_USER', payload: user });
+
+          // Fetch all prompts from database
+          const { data: fetchedPrompts, error: promptsError } = await promptsAPI.getAll();
+          if (fetchedPrompts && !promptsError) {
+            // Transform the data to match Prompt interface (user_id -> author)
+            const transformedPrompts = fetchedPrompts.map(prompt => ({
+              ...prompt,
+              author: prompt.user_id, // Rename user_id to author
+              user_id: undefined // Remove the user_id field
+            }));
+            dispatch({ type: 'SET_PROMPTS', payload: transformedPrompts });
+          } else {
+            console.error('[loadUserProfile] Error fetching prompts:', promptsError);
+          }
+        } else {
+          console.error('[AppContext] Error creating profile:', createError);
+        }
+      }
+    } catch (err) {
+      console.error('[AppContext] Error loading user profile:', err);
+    }
+  };
+
   // Set up real-time subscriptions
   useEffect(() => {
     if (!state.user) return;
@@ -672,15 +817,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 // Fetch the complete prompt with author info
                 const { data: newPrompt } = await promptsAPI.getById(payload.new.id);
                 if (newPrompt) {
-                  dispatch({ type: 'ADD_PROMPT', payload: newPrompt });
+                  // Transform the data to match Prompt interface (user_id -> author)
+                  const transformedPrompt = {
+                    ...newPrompt,
+                    author: newPrompt.user_id,
+                    user_id: undefined
+                  };
+                  dispatch({ type: 'ADD_PROMPT', payload: transformedPrompt });
                 }
               } else if (payload.eventType === 'UPDATE') {
                 // Update existing prompt
                 const { data: updatedPrompt } = await promptsAPI.getById(payload.new.id);
                 if (updatedPrompt) {
+                  // Transform the data to match Prompt interface (user_id -> author)
+                  const transformedPrompt = {
+                    ...updatedPrompt,
+                    author: updatedPrompt.user_id,
+                    user_id: undefined
+                  };
                   dispatch({
                     type: 'UPDATE_PROMPT',
-                    payload: { id: payload.new.id, updates: updatedPrompt }
+                    payload: { id: payload.new.id, updates: transformedPrompt }
                   });
                 }
               } else if (payload.eventType === 'DELETE') {
@@ -794,6 +951,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         )
         .subscribe();
 
+      // Subscribe to subscription changes for real-time role updates
+      const subscriptionsSubscription = supabase
+        .channel('subscriptions_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'subscriptions',
+            filter: `user_id=eq.${state.user.id}`
+          },
+          async (_payload) => {
+            try {
+              if (!state.user) return;
+
+              // Fetch the latest subscription status
+              const { data: subscription } = await getUserSubscription(state.user.id);
+              const newSubscriptionStatus = subscription?.status;
+
+              // Recalculate role based on subscription status
+              let newRole: UserRole = 'general';
+              if (state.user.email && ADMIN_EMAILS.includes(state.user.email)) {
+                newRole = 'admin';
+              } else if (newSubscriptionStatus === 'active') {
+                newRole = 'pro';
+              }
+
+              // Update invites remaining based on new role
+              const updatedUser: User = { ...state.user, role: newRole, subscriptionStatus: newSubscriptionStatus };
+              const newInvitesRemaining = getInviteLimit(updatedUser);
+
+              // Dispatch update to context
+              dispatch({
+                type: 'UPDATE_USER',
+                payload: {
+                  role: newRole,
+                  subscriptionStatus: newSubscriptionStatus,
+                  invitesRemaining: newInvitesRemaining
+                }
+              });
+            } catch (err) {
+              console.warn('Error handling subscription change:', err);
+            }
+          }
+        )
+        .subscribe();
+
       // Cleanup subscriptions
       return () => {
         try {
@@ -801,6 +1005,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           commentsSubscription.unsubscribe();
           heartsSubscription.unsubscribe();
           savesSubscription.unsubscribe();
+          subscriptionsSubscription.unsubscribe();
         } catch (err) {
           console.warn('Error cleaning up subscriptions:', err);
         }

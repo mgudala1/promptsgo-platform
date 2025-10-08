@@ -3,7 +3,7 @@ import { useApp } from '../contexts/AppContext';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { ArrowLeft, Download, Lock, Users, Plus } from 'lucide-react';
+import { ArrowLeft, Lock, Users, Plus, Crown } from 'lucide-react';
 import { PromptPack } from '../lib/types';
 
 interface IndustryPacksPageProps {
@@ -57,7 +57,7 @@ export function IndustryPacksPage({ onBack, onPackClick, onCreatePackClick }: In
     }
 
     // For free users, limit to 2 packs
-    if (state.user.subscriptionPlan === 'free') {
+    if (state.user.subscriptionStatus !== 'active') {
       const userPackCount = state.userPackLibrary?.packs?.length || 0;
       if (userPackCount >= 2) {
         alert('Free users can add up to 2 packs. Upgrade to Pro for unlimited access!');
@@ -95,9 +95,9 @@ export function IndustryPacksPage({ onBack, onPackClick, onCreatePackClick }: In
               Back
             </Button>
             <div>
-              <h1 className="mb-2">Industry Prompt Packs</h1>
+              <h1 className="mb-2">Prompt Packs</h1>
               <p className="text-muted-foreground">
-                Curated collections of professional prompts organized by industry and use case
+                Curated collections of professional prompts organized by industry, professionals and use case
               </p>
             </div>
           </div>
@@ -141,9 +141,9 @@ export function IndustryPacksPage({ onBack, onPackClick, onCreatePackClick }: In
                         </Badge>
                       )}
                       {pack.isPremium && (
-                        <Badge variant="outline" className="text-xs">
-                          <Lock className="w-3 h-3 mr-1" />
-                          Premium
+                        <Badge variant="secondary" className="text-xs">
+                          <Crown className="w-3 h-3 mr-1" />
+                          Pro
                         </Badge>
                       )}
                     </CardTitle>
@@ -172,10 +172,6 @@ export function IndustryPacksPage({ onBack, onPackClick, onCreatePackClick }: In
 
                   {/* Stats */}
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Download className="w-4 h-4" />
-                      {pack.downloadCount.toLocaleString()}
-                    </div>
                     <div className="flex items-center gap-1">
                       <Users className="w-4 h-4" />
                       {pack.promptIds.length} prompts

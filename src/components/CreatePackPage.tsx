@@ -71,7 +71,6 @@ export function CreatePackPage({ onBack, onPackCreated }: CreatePackPageProps) {
       createdBy: state.user.id,
       isOfficial: false, // User-created packs are not official
       tags,
-      downloadCount: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -243,7 +242,7 @@ export function CreatePackPage({ onBack, onPackCreated }: CreatePackPageProps) {
                 <Checkbox
                   id="premium"
                   checked={isPremium}
-                  onCheckedChange={(checked) => setIsPremium(checked as boolean)}
+                  onCheckedChange={(checked: boolean) => setIsPremium(checked)}
                 />
                 <Label htmlFor="premium">Make this a premium pack</Label>
               </div>

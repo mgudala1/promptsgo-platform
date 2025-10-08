@@ -2,23 +2,23 @@ import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Textarea } from './ui/textarea';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
 import { Separator } from './ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Alert, AlertDescription } from './ui/alert';
+import { Skeleton } from './ui/skeleton';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 import { useApp } from '../contexts/AppContext';
-import { Prompt, Comment, PromptFeedback } from '../lib/types';
+import { Prompt } from '../lib/types';
 import { canSaveMore, canForkMore, getForksThisMonth } from '../lib/limits';
-import { prompts } from '../lib/api';
+import { prompts, saves as savesApi, comments, hearts } from '../lib/api';
+import { PromptSuccessPanel } from './PromptSuccessPanel';
 import {
   ArrowLeft, BookmarkPlus, GitFork, Share,
-  MessageCircle, Copy, Eye, Calendar, Edit,
-  CheckCircle, AlertCircle, Heart, ThumbsUp, ThumbsDown, TrendingUp, BarChart3,
-  Image as ImageIcon, FileText, Crown
+  Copy, Eye, Calendar, Edit,
+  AlertCircle, TrendingUp,
+  Image as ImageIcon, FileText, Crown, CheckCircle,
+  MessageCircle, Heart
 } from 'lucide-react';
 
 interface PromptDetailPageProps {
@@ -29,24 +29,24 @@ interface PromptDetailPageProps {
 }
 
 export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDetailPageProps) {
-  const { state, dispatch } = useApp();
-  const [prompt, setPrompt] = useState<Prompt | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState('');
-  const [replyTo, setReplyTo] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [feedbackRating, setFeedbackRating] = useState<'positive' | 'negative' | null>(null);
-  const [feedbackNote, setFeedbackNote] = useState('');
-  const [feedbackUseCase, setFeedbackUseCase] = useState('');
-  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
-  const [limitError, setLimitError] = useState<string>('');
+    const { state, dispatch } = useApp();
+    const [prompt, setPrompt] = useState<Prompt | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [copied, setCopied] = useState(false);
+   const [limitError, setLimitError] = useState<string>('');
+   const [newComment, setNewComment] = useState('');
+   const [postingComment, setPostingComment] = useState(false);
+   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+   const [replyText, setReplyText] = useState('');
+   const [heartAnimating, setHeartAnimating] = useState(false);
 
-  // Load prompt and comments data
+  // Load prompt data
   useEffect(() => {
-    const loadPromptData = async () => {
-      try {
-        // Try to load full prompt data from database first
-        const { data: fullPromptData, error } = await prompts.getById(promptId);
+     console.log('PromptDetailPage: Starting to load prompt data for promptId:', promptId);
+     const loadPromptData = async () => {
+       try {
+         // Try to load full prompt data from database first
+         const { data: fullPromptData, error } = await prompts.getById(promptId);
 
         if (!error && fullPromptData) {
           // Transform the database data to match our Prompt type
@@ -87,7 +87,8 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
               lastLogin: fullPromptData.profiles.created_at || fullPromptData.created_at,
               badges: [],
               skills: [],
-              subscriptionPlan: fullPromptData.profiles.subscription_plan || 'free',
+              role: fullPromptData.profiles.role || 'general',
+              subscriptionStatus: fullPromptData.profiles.subscription_status || 'active',
               saveCount: 0,
               invitesRemaining: fullPromptData.profiles.invites_remaining || 0
             } : {
@@ -100,7 +101,8 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
               lastLogin: fullPromptData.created_at,
               badges: [],
               skills: [],
-              subscriptionPlan: 'free',
+              role: 'general',
+              subscriptionStatus: 'active',
               saveCount: 0,
               invitesRemaining: 0
             },
@@ -118,9 +120,12 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
             isHearted: false, // Will be set by component logic
             isSaved: false,   // Will be set by component logic
             isForked: false,
-            template: fullPromptData.template || undefined
+            template: fullPromptData.template || undefined,
+            successRate: fullPromptData.success_rate || 0,
+            successVotesCount: fullPromptData.success_votes_count || 0
           };
 
+          console.log('PromptDetailPage: Setting prompt data for promptId:', promptId);
           setPrompt(fullPrompt);
         } else {
           // Fallback to local state data
@@ -134,43 +139,16 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
         // Fallback to local state data
         const foundPrompt = state.prompts.find(p => p.id === promptId);
         if (foundPrompt) {
-          setPrompt(foundPrompt);
-        }
+            setPrompt(foundPrompt);
+          }
+      } finally {
+        setLoading(false);
       }
     };
 
     loadPromptData();
+  }, [promptId, state.prompts]);
 
-    const promptComments = state.comments.filter(c => c.promptId === promptId);
-    setComments(promptComments);
-  }, [promptId, state.prompts, state.comments]);
-
-  // Check if user has already submitted feedback - separate effect to avoid dependency issues
-  useEffect(() => {
-    if (state.user?.id && state.promptFeedbacks) {
-      const existingFeedback = state.promptFeedbacks.find(f =>
-        f.promptId === promptId && f.userId === state.user!.id
-      );
-      if (existingFeedback) {
-        setFeedbackSubmitted(true);
-        setFeedbackRating(existingFeedback.rating);
-        setFeedbackNote(existingFeedback.note || '');
-        setFeedbackUseCase(existingFeedback.useCase || '');
-      } else {
-        // Reset feedback form if no existing feedback
-        setFeedbackSubmitted(false);
-        setFeedbackRating(null);
-        setFeedbackNote('');
-        setFeedbackUseCase('');
-      }
-    } else {
-      // Reset feedback form if no user
-      setFeedbackSubmitted(false);
-      setFeedbackRating(null);
-      setFeedbackNote('');
-      setFeedbackUseCase('');
-    }
-  }, [promptId, state.user?.id, state.promptFeedbacks]);
 
   // Increment view count only once when component mounts
   useEffect(() => {
@@ -188,7 +166,65 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
     }
   }, [promptId]); // Only run when promptId changes
 
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
+        {/* Header Skeleton */}
+        <div className="flex items-center gap-4 mb-6">
+          <Skeleton className="h-10 w-20" />
+        </div>
+
+        {/* Prompt Header Skeleton */}
+        <div className="mb-6">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-6 w-20" />
+              </div>
+              <Skeleton className="h-8 w-3/4 mb-2" />
+              <Skeleton className="h-5 w-1/2" />
+            </div>
+            <div className="flex items-center gap-2 ml-4">
+              <Skeleton className="h-10 w-20" />
+              <Skeleton className="h-10 w-20" />
+              <Skeleton className="h-10 w-20" />
+            </div>
+          </div>
+
+          {/* Author Info Skeleton */}
+          <div className="flex items-center gap-4 mb-4">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div>
+              <Skeleton className="h-4 w-24 mb-1" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+          </div>
+
+          {/* Stats Skeleton */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <div className="flex items-center gap-1">
+              <Skeleton className="h-6 w-16" />
+            </div>
+          </div>
+        </div>
+
+        {/* Content Skeleton */}
+        <div className="space-y-6">
+          <div>
+            <Skeleton className="h-6 w-32 mb-4" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!prompt) {
+    console.log('PromptDetailPage: Rendering "Prompt not found" for promptId:', promptId);
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
@@ -199,43 +235,82 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
     );
   }
 
-  const handleHeart = () => {
-    if (!state.user) return;
 
-    const isHearted = state.hearts.some(h => 
-      h.userId === state.user!.id && h.promptId === promptId
-    );
-
-    if (isHearted) {
-      dispatch({ type: 'UNHEART_PROMPT', payload: { promptId } });
-    } else {
-      dispatch({ type: 'HEART_PROMPT', payload: { promptId } });
+  const handleSave = async () => {
+    if (!state.user) {
+      console.log('User not authenticated');
+      return;
     }
-  };
-
-  const handleSave = () => {
-    if (!state.user) return;
     setLimitError('');
 
     const isSaved = state.saves.some(s =>
       s.userId === state.user!.id && s.promptId === promptId
     );
 
-    if (isSaved) {
-      dispatch({ type: 'UNSAVE_PROMPT', payload: promptId });
-    } else {
-      // Check save limit
+    // Check save limit before attempting to save
+    if (!isSaved) {
       const userSaves = state.saves.filter(s => s.userId === state.user!.id);
       const { allowed, message } = canSaveMore(state.user, userSaves.length);
-      
+
       if (!allowed) {
         setLimitError(message || 'Save limit reached');
         return;
       }
-      
-      dispatch({ type: 'SAVE_PROMPT', payload: { promptId } });
+    }
+
+    console.log('Toggling save for prompt:', promptId, 'Current isSaved:', isSaved);
+    try {
+      const result = await savesApi.toggle(promptId);
+      console.log('Save result:', result);
+
+      if (!result.error && result.data) {
+        // Update global state immediately for instant visual feedback
+        if (result.data.action === 'added') {
+          console.log('Adding save - updating UI');
+          dispatch({ type: 'SAVE_PROMPT', payload: { promptId } });
+        } else {
+          console.log('Removing save - updating UI');
+          dispatch({ type: 'UNSAVE_PROMPT', payload: promptId });
+        }
+      } else {
+        console.error('Save error:', result.error);
+      }
+    } catch (error) {
+      console.error('Save exception:', error);
     }
   };
+
+  const handleHeart = async () => {
+     if (!state.user) {
+       console.log('User not authenticated');
+       return;
+     }
+
+     // Trigger animation
+     setHeartAnimating(true);
+     setTimeout(() => setHeartAnimating(false), 400);
+
+     console.log('Toggling heart for prompt:', promptId, 'Current isHearted:', isHearted);
+     try {
+       const result = await hearts.toggle(promptId);
+       console.log('Heart result:', result);
+
+       if (!result.error && result.data) {
+         // Update global state immediately for instant visual feedback
+         if (result.data.action === 'added') {
+           console.log('Adding heart - updating UI');
+           dispatch({ type: 'HEART_PROMPT', payload: { promptId } });
+         } else {
+           console.log('Removing heart - updating UI');
+           dispatch({ type: 'UNHEART_PROMPT', payload: { promptId } });
+         }
+       } else {
+         console.error('Heart error:', result.error);
+       }
+     } catch (error) {
+       console.error('Heart exception:', error);
+     }
+   };
 
   const handleFork = () => {
     if (!state.user) return;
@@ -265,7 +340,7 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
 
   const handleShare = async () => {
     const url = `${window.location.origin}/prompts/${prompt.slug}`;
-    
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -287,68 +362,73 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
     }
   };
 
-  const addComment = () => {
+  const handlePostComment = async () => {
     if (!state.user || !newComment.trim()) return;
 
-    const comment: Comment = {
-      id: `comment-${Date.now()}`,
-      promptId,
-      userId: state.user.id,
-      parentId: replyTo || undefined,
-      content: newComment.trim(),
-      hearts: 0,
-      isEdited: false,
-      isDeleted: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      author: state.user,
-      replies: []
-    };
+    setPostingComment(true);
+    try {
+      const result = await comments.create({
+        prompt_id: promptId,
+        user_id: state.user.id,
+        content: newComment.trim()
+      });
 
-    dispatch({ type: 'ADD_COMMENT', payload: comment });
-    setNewComment('');
-    setReplyTo(null);
+      if (result.error) {
+        console.error('Error posting comment:', result.error);
+      } else {
+        // Comment will be added via real-time subscription
+        setNewComment('');
+      }
+    } catch (error) {
+      console.error('Error posting comment:', error);
+    } finally {
+      setPostingComment(false);
+    }
   };
 
-  const isHearted = state.hearts.some(h => 
-    h.userId === state.user?.id && h.promptId === promptId
-  );
+  const handleReply = async (parentCommentId: string) => {
+    if (!state.user || !replyText.trim()) return;
 
-  const isSaved = state.saves.some(s => 
+    try {
+      const result = await comments.create({
+        prompt_id: promptId,
+        user_id: state.user.id,
+        parent_id: parentCommentId,
+        content: replyText.trim()
+      });
+
+      if (result.error) {
+        console.error('Error posting reply:', result.error);
+      } else {
+        // Reply will be added via real-time subscription
+        setReplyingTo(null);
+        setReplyText('');
+      }
+    } catch (error) {
+      console.error('Error posting reply:', error);
+    }
+  };
+
+
+  const isSaved = state.saves.some(s =>
     s.userId === state.user?.id && s.promptId === promptId
   );
 
+  const isHearted = state.hearts.some(h =>
+    h.userId === state.user?.id && h.promptId === promptId
+  );
+
   const isOwner = state.user?.id === prompt.userId;
+
+  // Check if this prompt is part of any pack
+  const isPackPrompt = state.promptPacks.some(pack =>
+    pack.promptIds.includes(promptId)
+  );
+
   const canEdit = isOwner;
-  const canFork = state.user && !isOwner;
+  // Pro users cannot fork pack prompts to protect content creators' IP
+  const canFork = state.user && !isOwner && !isPackPrompt;
 
-  // Get feedback data for this prompt
-  const promptFeedbacks = state.promptFeedbacks?.filter(f => f.promptId === promptId) || [];
-  const positiveFeedbacks = promptFeedbacks.filter(f => f.rating === 'positive');
-  const negativeFeedbacks = promptFeedbacks.filter(f => f.rating === 'negative');
-  const totalFeedbacks = promptFeedbacks.length;
-  const successRate = totalFeedbacks > 0 ? Math.round((positiveFeedbacks.length / totalFeedbacks) * 100) : null;
-
-  const handleSubmitFeedback = () => {
-    if (!state.user || !feedbackRating) return;
-
-    try {
-      const feedback: PromptFeedback = {
-        id: `feedback-${Date.now()}`,
-        promptId,
-        userId: state.user.id,
-        rating: feedbackRating,
-        note: feedbackNote.trim() || undefined,
-        useCase: feedbackUseCase.trim() || undefined,
-        createdAt: new Date().toISOString()
-      };
-
-      dispatch({ type: 'ADD_PROMPT_FEEDBACK', payload: feedback });
-      setFeedbackSubmitted(true);
-    } catch (error) {
-      console.error('Error submitting feedback:', error);
-    }
-  };
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl">
@@ -373,7 +453,7 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             {limitError}
-            {!state.user?.subscriptionPlan || state.user.subscriptionPlan === 'free' ? (
+            {state.user?.role === 'general' ? (
               <Button variant="link" className="ml-2 p-0 h-auto" onClick={() => window.location.href = '#subscription'}>
                 <Crown className="h-3 w-3 mr-1" />
                 Upgrade to Pro
@@ -423,8 +503,8 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
               </Button>
             )}
 
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleSave}
               className={isSaved ? 'bg-primary/10 text-primary' : ''}
             >
@@ -469,42 +549,45 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
             </div>
           </div>
         </div>
-{/* Stats and Actions */}
-<div className="flex items-center justify-between">
-  <div className="flex items-center gap-6">
-    <Button
-      variant={isHearted ? 'default' : 'outline'}
-      size="sm"
-      onClick={handleHeart}
-      disabled={!state.user}
-      className={isHearted ? 'bg-red-500 hover:bg-red-600 text-white' : ''}
-    >
-      <Heart className={`h-4 w-4 mr-1 ${isHearted ? 'fill-current' : ''}`} />
-      {prompt.hearts}
-    </Button>
 
-    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-      <span>{prompt.saveCount} saves</span>
-      <span>{prompt.forkCount} forks</span>
-      <span>{prompt.commentCount} comments</span>
-      {successRate !== null && (
-        <span className="flex items-center gap-1">
-          <TrendingUp className="h-3 w-3" />
-          {successRate}% success rate
-        </span>
-      )}
-    </div>
-  </div>
+        {/* Stats and Model Compatibility */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <Button variant="ghost" size="sm" onClick={handleHeart} className={`flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground ${isHearted ? 'text-red-500' : ''}`}>
+                <Heart className={`h-3 w-3 transition-all duration-300 ease-out ${
+                  isHearted
+                    ? 'fill-current scale-110'
+                    : 'scale-100'
+                } ${
+                  heartAnimating
+                    ? 'animate-bounce scale-125'
+                    : ''
+                }`}
+                style={{
+                  transform: heartAnimating ? 'scale(1.2) rotate(-5deg)' : undefined,
+                  transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                }} />
+                {prompt.hearts || 0}
+              </Button>
+              <span>{prompt.saveCount} saves</span>
+              <span>{prompt.forkCount} forks</span>
+              <span className="flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" />
+                {prompt.successVotesCount || 0} ratings
+              </span>
+            </div>
+          </div>
 
-  {/* Model Compatibility */}
-  <div className="flex items-center gap-1">
-    {prompt.modelCompatibility.map((model) => (
-      <Badge key={model} variant="outline" className="text-xs">
-        {model}
-      </Badge>
-    ))}
-  </div>
-</div>
+          {/* Model Compatibility */}
+          <div className="flex items-center gap-1">
+            {prompt.modelCompatibility.map((model) => (
+              <Badge key={model} variant="outline" className="text-xs">
+                {model}
+              </Badge>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Images Section */}
@@ -553,15 +636,14 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
       )}
 
       <Tabs defaultValue="content" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="template">
             <FileText className="h-4 w-4 mr-2" />
             Template
           </TabsTrigger>
           <TabsTrigger value="discussion">
-            Discussion ({totalFeedbacks + comments.length})
-            {successRate !== null && ` • ${successRate}% success`}
+            Discussion
           </TabsTrigger>
         </TabsList>
 
@@ -639,272 +721,166 @@ export function PromptDetailPage({ promptId, onBack, onEdit, onFork }: PromptDet
         </TabsContent>
 
         <TabsContent value="discussion" className="space-y-6">
-          {/* Feedback Statistics */}
-          {totalFeedbacks > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Card>
-                <CardContent className="flex items-center justify-center py-6">
-                  <div className="text-center">
-                    <TrendingUp className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                    <div className="text-2xl font-bold">
-                      {successRate !== null ? `${successRate}%` : 'N/A'}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Success Rate</div>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Prompt Success Panel - Consolidated Feedback System */}
+            <PromptSuccessPanel
+              averageRating={prompt.successRate || 0}
+              totalVotes={prompt.successVotesCount || 0}
+              successRate={prompt.successRate || 0}
+              commonUseCases={[
+                "Business communication and email writing",
+                "Professional correspondence",
+                "Client outreach and networking"
+              ]}
+              improvementSuggestions={[
+                "Add more tone customization options",
+                "Include industry-specific templates",
+                "Support for multiple languages"
+              ]}
+              promptId={promptId}
+            />
 
-              <Card>
-                <CardContent className="flex items-center justify-center py-6">
-                  <div className="text-center">
-                    <ThumbsUp className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                    <div className="text-2xl font-bold">{positiveFeedbacks.length}</div>
-                    <div className="text-sm text-muted-foreground">Positive</div>
-                  </div>
-                </CardContent>
-              </Card>
+           {/* Comments Section */}
+           <Card>
+             <CardHeader>
+               <CardTitle className="flex items-center gap-2">
+                 <MessageCircle className="h-5 w-5" />
+                 Comments ({prompt.commentCount || 0})
+               </CardTitle>
+               <p className="text-sm text-muted-foreground">
+                 Join the discussion and share your experience with this prompt
+               </p>
+             </CardHeader>
+             <CardContent>
+               {state.comments.filter(comment => comment.promptId === promptId).length > 0 ? (
+                 <div className="space-y-4">
+                   {state.comments
+                     .filter(comment => comment.promptId === promptId)
+                     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                     .map((comment) => (
+                       <div key={comment.id} className="border rounded-lg p-4">
+                         <div className="flex items-start gap-3">
+                           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs">
+                             {comment.author?.name?.charAt(0).toUpperCase() || 'U'}
+                           </div>
 
-              <Card>
-                <CardContent className="flex items-center justify-center py-6">
-                  <div className="text-center">
-                    <ThumbsDown className="h-8 w-8 mx-auto mb-2 text-red-600" />
-                    <div className="text-2xl font-bold">{negativeFeedbacks.length}</div>
-                    <div className="text-sm text-muted-foreground">Negative</div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                           <div className="flex-1">
+                             <div className="flex items-center gap-2 mb-1">
+                               <span className="font-medium text-sm">
+                                 {comment.author?.name || 'Anonymous'}
+                               </span>
+                               <span className="text-xs text-muted-foreground">
+                                 @{comment.author?.username || 'user'}
+                               </span>
+                               <span className="text-xs text-muted-foreground">
+                                 {new Date(comment.createdAt).toLocaleDateString()}
+                               </span>
+                             </div>
 
-          {/* Submit Feedback (for users who haven't submitted yet) */}
-          {state.user && !feedbackSubmitted ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ThumbsUp className="h-5 w-5" />
-                  Share Your Experience
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Help others by sharing how well this prompt worked for you
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>How well did this prompt work for you?</Label>
-                  <div className="flex gap-2 mt-2">
-                    <Button
-                      variant={feedbackRating === 'positive' ? 'default' : 'outline'}
-                      onClick={() => setFeedbackRating('positive')}
-                      className={feedbackRating === 'positive' ? 'bg-green-600 hover:bg-green-700' : ''}
-                    >
-                      <ThumbsUp className="h-4 w-4 mr-2" />
-                      Worked Well
-                    </Button>
-                    <Button
-                      variant={feedbackRating === 'negative' ? 'default' : 'outline'}
-                      onClick={() => setFeedbackRating('negative')}
-                      className={feedbackRating === 'negative' ? 'bg-red-600 hover:bg-red-700' : ''}
-                    >
-                      <ThumbsDown className="h-4 w-4 mr-2" />
-                      Didn't Work
-                    </Button>
-                  </div>
-                </div>
+                             <p className="text-sm mb-2">{comment.content}</p>
 
-                <div>
-                  <Label htmlFor="useCase">What did you use this prompt for? (Optional)</Label>
-                  <Input
-                    id="useCase"
-                    value={feedbackUseCase}
-                    onChange={(e) => setFeedbackUseCase(e.target.value)}
-                    placeholder="e.g., Writing blog posts, code documentation, customer support..."
-                  />
-                </div>
+                             <div className="flex items-center gap-2">
+                               <Button variant="ghost" size="sm">
+                                 <Heart className="h-3 w-3 mr-1" />
+                                 {comment.hearts || 0}
+                               </Button>
+                               <Button
+                                 variant="ghost"
+                                 size="sm"
+                                 onClick={() => {
+                                   if (replyingTo === comment.id) {
+                                     setReplyingTo(null);
+                                     setReplyText('');
+                                   } else {
+                                     setReplyingTo(comment.id);
+                                     setReplyText('');
+                                   }
+                                 }}
+                               >
+                                 Reply
+                               </Button>
+                             </div>
 
-                <div>
-                  <Label htmlFor="feedbackNote">Additional details (Optional)</Label>
-                  <Textarea
-                    id="feedbackNote"
-                    value={feedbackNote}
-                    onChange={(e) => setFeedbackNote(e.target.value)}
-                    placeholder="Share what worked well or didn't work, any modifications you made, etc."
-                    rows={3}
-                  />
-                </div>
+                             {/* Reply Form */}
+                             {replyingTo === comment.id && state.user && (
+                               <div className="mt-3 ml-8">
+                                 <div className="flex gap-3">
+                                   <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs">
+                                     {state.user.name?.charAt(0).toUpperCase() || 'U'}
+                                   </div>
+                                   <div className="flex-1">
+                                     <textarea
+                                       value={replyText}
+                                       onChange={(e) => setReplyText(e.target.value)}
+                                       placeholder={`Reply to ${comment.author?.name || 'Anonymous'}...`}
+                                       className="w-full p-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
+                                       rows={2}
+                                     />
+                                     <div className="flex justify-end gap-2 mt-2">
+                                       <Button
+                                         size="sm"
+                                         variant="ghost"
+                                         onClick={() => {
+                                           setReplyingTo(null);
+                                           setReplyText('');
+                                         }}
+                                       >
+                                         Cancel
+                                       </Button>
+                                       <Button
+                                         size="sm"
+                                         onClick={() => handleReply(comment.id)}
+                                         disabled={!replyText.trim()}
+                                       >
+                                         Reply
+                                       </Button>
+                                     </div>
+                                   </div>
+                                 </div>
+                               </div>
+                             )}
+                           </div>
+                         </div>
+                       </div>
+                     ))}
+                 </div>
+               ) : (
+                 <div className="text-center py-8 text-muted-foreground">
+                   <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                   <p>No comments yet. Be the first to share your thoughts!</p>
+                 </div>
+               )}
 
-                <Button
-                  onClick={handleSubmitFeedback}
-                  disabled={!feedbackRating}
-                >
-                  Submit Feedback
-                </Button>
-              </CardContent>
-            </Card>
-          ) : feedbackSubmitted ? (
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
-                Thank you for your feedback! You rated this prompt as{' '}
-                <strong>{feedbackRating === 'positive' ? 'working well' : 'not working well'}</strong>.
-              </AlertDescription>
-            </Alert>
-          ) : !state.user ? (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Please sign in to provide feedback on this prompt.
-              </AlertDescription>
-            </Alert>
-          ) : null}
-
-          {/* Add Comment */}
-          {state.user ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageCircle className="h-5 w-5" />
-                  Add a Comment
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <Textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Share your thoughts, ask questions, or provide feedback..."
-                    rows={3}
-                  />
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">
-                      {replyTo ? 'Replying to comment' : 'Adding a new comment'}
-                    </span>
-                    <div className="flex gap-2">
-                      {replyTo && (
-                        <Button variant="outline" onClick={() => setReplyTo(null)}>
-                          Cancel Reply
-                        </Button>
-                      )}
-                      <Button onClick={addComment} disabled={!newComment.trim()}>
-                        Post Comment
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Please sign in to leave a comment.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Feedback Details (for prompt owners) */}
-          {isOwner && totalFeedbacks > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Feedback Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {promptFeedbacks.map((feedback) => (
-                  <div key={feedback.id} className="p-4 border rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      {feedback.rating === 'positive' ? (
-                        <Badge className="bg-green-100 text-green-800">
-                          <ThumbsUp className="h-3 w-3 mr-1" />
-                          Positive
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-red-100 text-red-800">
-                          <ThumbsDown className="h-3 w-3 mr-1" />
-                          Negative
-                        </Badge>
-                      )}
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(feedback.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-
-                    {feedback.useCase && (
-                      <div className="mb-2">
-                        <span className="font-medium text-sm">Use case: </span>
-                        <span className="text-sm">{feedback.useCase}</span>
-                      </div>
-                    )}
-
-                    {feedback.note && (
-                      <div className="text-sm text-muted-foreground">
-                        {feedback.note}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Comments List */}
-          <div className="space-y-4">
-            {comments.map((comment) => (
-              <Card key={comment.id}>
-                <CardContent className="pt-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs">
-                      {comment.author.name.charAt(0).toUpperCase()}
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">{comment.author.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          @{comment.author.username}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(comment.createdAt).toLocaleDateString()}
-                        </span>
-                        {comment.isEdited && (
-                          <Badge variant="outline" className="text-xs">Edited</Badge>
-                        )}
-                      </div>
-
-                      <p className="text-sm mb-2">{comment.content}</p>
-
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm">
-                          <Heart className="h-3 w-3 mr-1" />
-                          {comment.hearts}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setReplyTo(comment.id)}
-                        >
-                          Reply
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-
-            {comments.length === 0 && totalFeedbacks === 0 && (
-              <Card>
-                <CardContent className="flex items-center justify-center py-8">
-                  <div className="text-center text-muted-foreground">
-                    <MessageCircle className="h-8 w-8 mx-auto mb-2" />
-                    <p>No discussion yet. Be the first to share your thoughts or feedback!</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
+               {/* Add Comment Form */}
+               {state.user && (
+                 <div className="mt-6 pt-4 border-t">
+                   <div className="flex gap-3">
+                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs">
+                       {state.user.name?.charAt(0).toUpperCase() || 'U'}
+                     </div>
+                     <div className="flex-1">
+                       <textarea
+                         value={newComment}
+                         onChange={(e) => setNewComment(e.target.value)}
+                         placeholder="Share your experience with this prompt..."
+                         className="w-full p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+                         rows={3}
+                       />
+                       <div className="flex justify-end mt-2">
+                         <Button
+                           size="sm"
+                           onClick={handlePostComment}
+                           disabled={!newComment.trim() || postingComment}
+                         >
+                           {postingComment ? 'Posting...' : 'Post Comment'}
+                         </Button>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               )}
+             </CardContent>
+           </Card>
+         </TabsContent>
       </Tabs>
     </div>
   );

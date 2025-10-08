@@ -108,7 +108,7 @@ export function AdminBulkImport() {
             ? promptData.model_compatibility.split(',').map((m: string) => m.trim())
             : ['GPT-4'];
 
-          // Create the prompt
+          // Create the prompt with 'unlisted' visibility for admin moderation
           await promptsAPI.create({
             user_id: user.id,
             title: promptData.title,
@@ -118,7 +118,7 @@ export function AdminBulkImport() {
             type: (promptData.type || 'text') as any,
             model_compatibility: modelCompatibility,
             tags,
-            visibility: (promptData.visibility || 'public') as any,
+            visibility: (promptData.visibility || 'unlisted') as any, // Changed default to 'unlisted' for moderation
             category: promptData.category,
             version: '1.0.0'
           });
@@ -157,7 +157,7 @@ export function AdminBulkImport() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="container mx-auto px-4 py-6 max-w-6xl">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Bulk Import Prompts</h1>
         <p className="text-muted-foreground">
@@ -272,10 +272,11 @@ export function AdminBulkImport() {
             {result.success > 0 && (
               <div className="pt-4 border-t">
                 <p className="text-sm text-muted-foreground mb-2">
-                  Your prompts have been imported successfully! Refresh the page to see them in the app.
+                  Your prompts have been imported successfully! They are currently unlisted and require admin approval before appearing publicly.
+                  Go to Content Moderation to review and approve them.
                 </p>
-                <Button variant="outline" onClick={() => window.location.reload()}>
-                  Refresh Page
+                <Button variant="outline" onClick={() => window.location.href = '/admin/content-moderation'}>
+                  Go to Content Moderation
                 </Button>
               </div>
             )}
@@ -292,7 +293,7 @@ export function AdminBulkImport() {
           <li><strong>Tags:</strong> Comma-separated list (e.g., "business,email,productivity")</li>
           <li><strong>Models:</strong> Comma-separated list (e.g., "GPT-4,Claude-3.5-Sonnet")</li>
           <li><strong>Type:</strong> text, code, image, agent, or chain (defaults to "text")</li>
-          <li><strong>Visibility:</strong> public, private, or unlisted (defaults to "public")</li>
+          <li><strong>Visibility:</strong> public, private, or unlisted (defaults to "unlisted" - requires admin approval)</li>
           <li><strong>Long content:</strong> Wrap in quotes and use proper CSV escaping</li>
         </ul>
       </Card>

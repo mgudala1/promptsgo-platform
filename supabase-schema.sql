@@ -44,6 +44,12 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('general', 'pro', 'admin');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
 -- Profiles table (extends Supabase auth.users)
 DROP TABLE IF EXISTS profiles CASCADE;
 CREATE TABLE profiles (
@@ -56,6 +62,8 @@ CREATE TABLE profiles (
     github TEXT,
     twitter TEXT,
     subscription_plan subscription_plan DEFAULT 'free',
+    role user_role DEFAULT 'general',
+    subscription_status subscription_status DEFAULT 'active',
     invites_remaining INTEGER DEFAULT 0,
     is_affiliate BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -204,7 +212,6 @@ CREATE TABLE prompt_packs (
     created_by UUID REFERENCES profiles(id) NOT NULL,
     is_official BOOLEAN DEFAULT FALSE,
     tags TEXT[] DEFAULT '{}',
-    download_count INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -325,6 +332,9 @@ CREATE INDEX idx_affiliate_referrals_referred_user_id ON affiliate_referrals(ref
 CREATE INDEX idx_invitees_email ON invitees(email);
 CREATE INDEX idx_invitees_invite_code ON invitees(invite_code);
 CREATE INDEX idx_invitees_status ON invitees(status);
+
+CREATE INDEX idx_profiles_role ON profiles(role);
+CREATE INDEX idx_profiles_subscription_status ON profiles(subscription_status);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -702,7 +712,7 @@ CREATE POLICY "Users can view their own invites" ON invitees FOR SELECT USING (
     auth.uid() = invited_by OR (email IS NOT NULL AND email = (SELECT email FROM auth.users WHERE id = auth.uid()))
 );
 CREATE POLICY "Admins can manage all invites" ON invitees FOR ALL USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND subscription_plan = 'pro')
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 CREATE POLICY "Anyone can join waitlist" ON invitees FOR INSERT WITH CHECK (
     status = 'waitlist'

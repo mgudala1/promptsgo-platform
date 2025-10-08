@@ -114,7 +114,8 @@ Make it persuasive, error-free, and optimized for the recipient's perspective.`,
       username: "sarahj",
       email: "sarah@example.com",
       reputation: 1250,
-      subscriptionPlan: "pro",
+      role: "pro",
+      subscriptionStatus: "active",
       createdAt: "2023-06-01T00:00:00Z",
       lastLogin: "2024-01-20T14:45:00Z",
       badges: ["Expert Writer", "Top Contributor"],
@@ -207,7 +208,7 @@ Make it [QUALITY STANDARDS] and optimized for the recipient's perspective.`,
       </div>
 
       <Tabs defaultValue="google-style" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="google-style">Google-Style Showcase</TabsTrigger>
           <TabsTrigger value="interactive-demo">Interactive Demo</TabsTrigger>
           <TabsTrigger value="responsive-test">Responsive Test</TabsTrigger>
@@ -379,7 +380,7 @@ Make it [QUALITY STANDARDS] and optimized for the recipient's perspective.`,
                 {/* Tabs */}
                 <Tabs defaultValue="content" className="w-full">
                   <div className="border-b">
-                    <TabsList className="w-full justify-start rounded-none bg-transparent h-auto p-0">
+                    <TabsList className="w-full justify-start rounded-none bg-transparent h-auto p-0 mb-6">
                       <TabsTrigger
                         value="content"
                         className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"

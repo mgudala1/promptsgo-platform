@@ -145,7 +145,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         </DialogHeader>
 
         <Tabs defaultValue="login" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="login">Sign In</TabsTrigger>
             <TabsTrigger value="register">Sign Up</TabsTrigger>
           </TabsList>

@@ -31,7 +31,7 @@ All standard navigation works for admins:
 - Home page
 - Explore prompts
 - Create prompts
-- Industry Packs
+- Prompt Packs
 - Profile page
 
 ### 2. **Settings Page**

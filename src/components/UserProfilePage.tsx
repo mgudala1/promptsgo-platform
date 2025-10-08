@@ -14,33 +14,35 @@ import { User, Prompt } from '../lib/types';
 import { CreatePortfolioPage } from './CreatePortfolioPage';
 import {
   ArrowLeft, User as UserIcon, Calendar, ExternalLink, Github,
-  Twitter, MapPin, Award, Star, GitFork, BookmarkPlus, Heart,
-  TrendingUp, Users, Edit, Settings, Crown, Zap, Target,
-  Shield, Globe, Link, Trash2, Package,
-  Briefcase, Plus, Eye, Lock, Copy, Download, Trash
+  Twitter, Award, Star, GitFork, BookmarkPlus,
+  TrendingUp, Crown, Zap, Target,
+  Shield, Globe, Trash2, Package,
+  Briefcase, Plus, Eye, Lock, Copy, Trash, CreditCard
 } from 'lucide-react';
 
 interface UserProfilePageProps {
-  userId: string;
-  initialTab?: string;
-  onBack: () => void;
-  onPromptClick: (promptId: string) => void;
-  onNavigateToSettings?: () => void;
-  onNavigateToIndustryPacks?: () => void;
-  onNavigateToPackView?: (packId: string) => void;
-  onNavigateToPortfolioView?: (portfolioId: string) => void;
-}
+   userId: string;
+   initialTab?: string;
+   onBack: () => void;
+   onPromptClick: (promptId: string) => void;
+   onNavigateToPromptPacks?: () => void;
+   onNavigateToPackView?: (packId: string) => void;
+   onNavigateToPortfolioView?: (portfolioId: string) => void;
+   onNavigateToBilling?: () => void;
+   onNavigateToSubscription?: () => void;
+ }
 
-export function UserProfilePage({ 
-  userId, 
-  initialTab, 
-  onBack, 
-  onPromptClick, 
-  onNavigateToSettings,
-  onNavigateToIndustryPacks,
-  onNavigateToPackView,
-  onNavigateToPortfolioView
-}: UserProfilePageProps) {
+export function UserProfilePage({
+   userId,
+   initialTab,
+   onBack,
+   onPromptClick,
+   onNavigateToPromptPacks,
+   onNavigateToPackView,
+   onNavigateToPortfolioView,
+   onNavigateToBilling,
+   onNavigateToSubscription
+ }: UserProfilePageProps) {
   const { state, dispatch } = useApp();
   const [user, setUser] = useState<User | null>(null);
   const [userPrompts, setUserPrompts] = useState<Prompt[]>([]);
@@ -121,8 +123,6 @@ export function UserProfilePage({
   const totalForks = userPrompts.reduce((sum, p) => sum + p.forkCount, 0);
   const totalViews = userPrompts.reduce((sum, p) => sum + p.viewCount, 0);
 
-  const followerCount = state.follows.filter(f => f.followingId === userId).length;
-  const followingCount = state.follows.filter(f => f.followerId === userId).length;
 
   const handleSave = () => {
     if (!state.user) return;
@@ -178,7 +178,7 @@ export function UserProfilePage({
   const ReputationIcon = reputationLevel.icon;
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-6xl">
+    <div className="container mx-auto px-4 py-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Button variant="ghost" onClick={onBack}>
@@ -205,9 +205,9 @@ export function UserProfilePage({
                       <span className="font-medium">{reputationLevel.level}</span>
                     </div>
                   </div>
-                  
+
                   <p className="text-muted-foreground mb-1">@{user.username}</p>
-                  
+
                   {user.bio && (
                     <p className="text-sm mb-4">{user.bio}</p>
                   )}
@@ -222,9 +222,9 @@ export function UserProfilePage({
                   {/* Links */}
                   <div className="flex items-center gap-3 mb-4">
                     {user.website && (
-                      <a 
-                        href={user.website} 
-                        target="_blank" 
+                      <a
+                        href={user.website}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-sm text-primary hover:underline"
                       >
@@ -233,9 +233,9 @@ export function UserProfilePage({
                       </a>
                     )}
                     {user.github && (
-                      <a 
+                      <a
                         href={`https://github.com/${user.github}`}
-                        target="_blank" 
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-sm text-primary hover:underline"
                       >
@@ -244,9 +244,9 @@ export function UserProfilePage({
                       </a>
                     )}
                     {user.twitter && (
-                      <a 
+                      <a
                         href={`https://twitter.com/${user.twitter}`}
-                        target="_blank" 
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-sm text-primary hover:underline"
                       >
@@ -272,7 +272,7 @@ export function UserProfilePage({
                 <div className="flex flex-col gap-2">
                   {!isOwnProfile && (
                     <>
-                      <Button 
+                      <Button
                         variant={isFollowing ? "outline" : "default"}
                         onClick={handleFollow}
                         disabled={!state.user}
@@ -363,7 +363,7 @@ export function UserProfilePage({
 
       {/* Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="mb-6">
           <TabsTrigger value="created">
             Created ({userPrompts.length})
           </TabsTrigger>
@@ -400,7 +400,8 @@ export function UserProfilePage({
                   author={{
                     name: prompt.author.name,
                     username: prompt.author.username,
-                    subscriptionPlan: prompt.author.subscriptionPlan
+                    role: prompt.author.role,
+                    subscriptionStatus: prompt.author.subscriptionStatus
                   }}
                   category={prompt.category}
                   tags={prompt.tags}
@@ -460,7 +461,8 @@ export function UserProfilePage({
                       author={{
                         name: prompt.author.name,
                         username: prompt.author.username,
-                        subscriptionPlan: prompt.author.subscriptionPlan
+                        role: prompt.author.role,
+                        subscriptionStatus: prompt.author.subscriptionStatus
                       }}
                       category={prompt.category}
                       tags={prompt.tags}
@@ -518,7 +520,8 @@ export function UserProfilePage({
                       author={{
                         name: prompt.author.name,
                         username: prompt.author.username,
-                        subscriptionPlan: prompt.author.subscriptionPlan
+                        role: prompt.author.role,
+                        subscriptionStatus: prompt.author.subscriptionStatus
                       }}
                       category={prompt.category}
                       tags={prompt.tags}
@@ -573,7 +576,7 @@ export function UserProfilePage({
                 <div>
                   <h3>My Pack Library</h3>
                   <p className="text-muted-foreground text-sm">
-                    Industry packs you've added to your collection
+                    Prompt packs you've added to your collection
                   </p>
                 </div>
               </div>
@@ -610,10 +613,6 @@ export function UserProfilePage({
                                 <div className="flex items-center gap-1">
                                   <Calendar className="w-4 h-4" />
                                   Added {new Date(userPack.addedAt).toLocaleDateString()}
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Briefcase className="w-4 h-4" />
-                                  Used in {userPack.addedToPortfolios.length} portfolio{userPack.addedToPortfolios.length !== 1 ? 's' : ''}
                                 </div>
                               </div>
                             </div>
@@ -653,11 +652,11 @@ export function UserProfilePage({
                       <Package className="h-12 w-12 mx-auto mb-4" />
                       <h3 className="mb-2">No packs yet</h3>
                       <p className="mb-6">
-                        Browse Industry Packs to build your professional prompt library
+                        Browse Prompt Packs to build your professional prompt library
                       </p>
-                      <Button onClick={() => onNavigateToIndustryPacks?.()}>
+                      <Button onClick={() => onNavigateToPromptPacks?.()}>
                         <Package className="w-4 h-4 mr-2" />
-                        Browse Industry Packs
+                        Browse Prompt Packs
                       </Button>
                     </div>
                   </CardContent>
@@ -709,7 +708,7 @@ export function UserProfilePage({
                             {/* Portfolio URL */}
                             <div className="flex items-center gap-2 p-3 bg-muted rounded-lg mb-3">
                               <code className="text-sm flex-1">
-                                {state.user?.subscriptionPlan === 'pro' 
+                                {state.user?.role === 'pro'
                                   ? `${portfolio.subdomain}.promptsgo.com`
                                   : `promptsgo.com/portfolio/${portfolio.subdomain}`
                                 }
@@ -718,7 +717,7 @@ export function UserProfilePage({
                                 variant="ghost"
                                 size="sm"
                                 onClick={async () => {
-                                  const url = state.user?.subscriptionPlan === 'pro' 
+                                  const url = state.user?.role === 'pro'
                                     ? `${portfolio.subdomain}.promptsgo.com`
                                     : `promptsgo.com/portfolio/${portfolio.subdomain}`;
                                   try {
@@ -770,7 +769,7 @@ export function UserProfilePage({
                               variant="outline"
                               size="sm"
                               onClick={async () => {
-                                const url = state.user?.subscriptionPlan === 'pro' 
+                                const url = (state.user?.role || 'general') === 'pro'
                                   ? `${portfolio.subdomain}.promptsgo.com`
                                   : `promptsgo.com/portfolio/${portfolio.subdomain}`;
                                 try {
@@ -841,10 +840,14 @@ export function UserProfilePage({
 
             <TabsContent value="settings" className="space-y-6">
               <Tabs defaultValue="profile">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3 mb-6">
                   <TabsTrigger value="profile" className="flex items-center gap-2">
                     <UserIcon className="h-4 w-4" />
                     Profile
+                  </TabsTrigger>
+                  <TabsTrigger value="subscription" className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    Subscription
                   </TabsTrigger>
                   <TabsTrigger value="privacy" className="flex items-center gap-2">
                     <Shield className="h-4 w-4" />
@@ -964,7 +967,101 @@ export function UserProfilePage({
                   </Card>
                 </TabsContent>
 
+                {/* Subscription Settings */}
+                <TabsContent value="subscription" className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        Current Plan
+                        {state.user?.role === 'pro' && (
+                          <Badge variant="secondary" className="flex items-center gap-1">
+                            <Crown className="h-3 w-3" />
+                            Pro
+                          </Badge>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h3 className="font-medium">
+                              {state.user?.role === 'pro' ? 'Pro Plan' : 'Free Plan'}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {state.user?.role === 'pro'
+                                ? '$7.99/month - Advanced features included'
+                                : 'Basic features only'
+                              }
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold">
+                              {state.user?.role === 'pro' ? '$7.99' : 'Free'}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {state.user?.role === 'pro' ? 'per month' : ''}
+                            </div>
+                          </div>
+                        </div>
 
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span>Saves per month</span>
+                            <span>{state.user?.role === 'pro' ? 'Unlimited' : '10'}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span>Forks per month</span>
+                            <span>{state.user?.role === 'pro' ? 'Unlimited' : '5'}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span>Export collections</span>
+                            <span>{state.user?.role === 'pro' ? 'Yes' : 'No'}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span>API Access</span>
+                            <span>{state.user?.role === 'pro' ? 'Yes' : 'No'}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 space-y-2">
+                          {state.user?.role === 'general' ? (
+                            <Button className="w-full" onClick={() => {/* TODO: Navigate to subscription page */}}>
+                              Upgrade to Pro
+                            </Button>
+                          ) : (
+                            <>
+                              <Button
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => onNavigateToBilling?.()}
+                              >
+                                <CreditCard className="h-4 w-4 mr-2" />
+                                Manage Billing & Subscription
+                              </Button>
+                              {state.user?.isAdmin && (
+                                <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                  <p className="text-xs text-blue-800 dark:text-blue-200">
+                                    👑 <strong>Admin Note:</strong> You have Pro features automatically. Billing page shows UI demo.
+                                  </p>
+                                </div>
+                              )}
+                            </>
+                          )}
+
+                          <Button
+                            variant="ghost"
+                            className="w-full text-sm"
+                            onClick={() => onNavigateToSubscription?.()}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            View all plans & pricing
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
                 {/* Privacy Settings */}
                 <TabsContent value="privacy" className="space-y-6">

@@ -149,7 +149,7 @@ export function SavedPromptsPage({ onBack, onPromptClick }: SavedPromptsPageProp
 
       {/* Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="mb-6">
           <TabsTrigger value="saved" className="flex items-center gap-2">
             <BookmarkPlus className="h-4 w-4" />
             Saved ({savedPrompts.length})

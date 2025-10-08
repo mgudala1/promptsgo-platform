@@ -4,9 +4,8 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { PromptCard } from './PromptCard';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { PromptPack, Prompt } from '../lib/types';
-import { ArrowLeft, Download, Lock, Users, Calendar, Package, Heart, Briefcase } from 'lucide-react';
+import { ArrowLeft, Lock, Users, Calendar, Package, Heart, Crown } from 'lucide-react';
 
 interface PackViewPageProps {
   packId: string;
@@ -18,7 +17,6 @@ export function PackViewPage({ packId, onBack, onPromptClick }: PackViewPageProp
   const { state, dispatch } = useApp();
   const [pack, setPack] = useState<PromptPack | null>(null);
   const [packPrompts, setPackPrompts] = useState<Prompt[]>([]);
-  const [selectedPortfolio, setSelectedPortfolio] = useState<string>('');
 
   useEffect(() => {
     // Find pack in state (which includes all packs)
@@ -36,7 +34,7 @@ export function PackViewPage({ packId, onBack, onPromptClick }: PackViewPageProp
     if (!state.user || !pack) return;
 
     // For free users, limit to 2 packs
-    if (state.user.subscriptionPlan === 'free') {
+    if (state.user.subscriptionStatus !== 'active') {
       const userPackCount = state.userPackLibrary?.packs?.length || 0;
       if (userPackCount >= 2) {
         alert('Free users can add up to 2 packs. Upgrade to Pro for unlimited access!');
@@ -58,22 +56,7 @@ export function PackViewPage({ packId, onBack, onPromptClick }: PackViewPageProp
     alert(`Added "${pack.name}" pack to your collection!`);
   };
 
-  const handleAddToPortfolio = () => {
-    if (!state.user || !pack || !selectedPortfolio) return;
-
-    dispatch({
-      type: 'ADD_PACK_PROMPTS_TO_PORTFOLIO',
-      payload: {
-        portfolioId: selectedPortfolio,
-        packId: pack.id,
-        packName: pack.name,
-        promptIds: pack.promptIds
-      }
-    });
-
-    alert(`Added "${pack.name}" prompts to your portfolio!`);
-    setSelectedPortfolio('');
-  };
+  // Removed: Pro users cannot add pack prompts to portfolios to protect content creators' IP
 
   const handlePurchasePack = () => {
     if (!pack) return;
@@ -87,7 +70,7 @@ export function PackViewPage({ packId, onBack, onPromptClick }: PackViewPageProp
           <div className="flex items-center gap-4 mb-8">
             <Button variant="ghost" size="sm" onClick={onBack}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Industry Packs
+              Back to Prompt Packs
             </Button>
           </div>
           
@@ -112,7 +95,7 @@ export function PackViewPage({ packId, onBack, onPromptClick }: PackViewPageProp
         <div className="flex items-center gap-4 mb-8">
           <Button variant="ghost" size="sm" onClick={onBack}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Industry Packs
+            Back to Prompt Packs
           </Button>
         </div>
 
@@ -129,9 +112,9 @@ export function PackViewPage({ packId, onBack, onPromptClick }: PackViewPageProp
                       <Badge variant="secondary">Official</Badge>
                     )}
                     {pack.isPremium && (
-                      <Badge variant="outline">
-                        <Lock className="w-3 h-3 mr-1" />
-                        Premium
+                      <Badge variant="secondary">
+                        <Crown className="w-3 h-3 mr-1" />
+                        Pro
                       </Badge>
                     )}
                   </CardTitle>
@@ -153,10 +136,6 @@ export function PackViewPage({ packId, onBack, onPromptClick }: PackViewPageProp
                     <div className="flex items-center gap-1">
                       <Users className="w-4 h-4" />
                       {pack.promptIds.length} prompts
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Download className="w-4 h-4" />
-                      {pack.downloadCount.toLocaleString()} downloads
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
@@ -184,34 +163,6 @@ export function PackViewPage({ packId, onBack, onPromptClick }: PackViewPageProp
                       </Button>
                     )}
                   </div>
-                  
-                  {/* Portfolio Integration */}
-                  {state.user && state.portfolios.length > 0 && (
-                    <div className="flex gap-2 items-center">
-                      <Select value={selectedPortfolio} onValueChange={setSelectedPortfolio}>
-                        <SelectTrigger className="w-48">
-                          <SelectValue placeholder="Select portfolio..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {state.portfolios
-                            .filter(p => p.userId === state.user!.id)
-                            .map(portfolio => (
-                              <SelectItem key={portfolio.id} value={portfolio.id}>
-                                {portfolio.name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                      <Button 
-                        onClick={handleAddToPortfolio}
-                        disabled={!selectedPortfolio}
-                        variant="outline"
-                      >
-                        <Briefcase className="w-4 h-4 mr-2" />
-                        Add to Portfolio
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </div>
             </CardHeader>

@@ -6,7 +6,7 @@
 import { User } from './types';
 
 // List of admin emails
-const ADMIN_EMAILS = [
+export const ADMIN_EMAILS = [
   'mgoud311@gmail.com'
 ];
 
@@ -14,16 +14,42 @@ const ADMIN_EMAILS = [
  * Check if a user is an admin
  */
 export function isAdmin(user: User | null): boolean {
-  if (!user || !user.email) return false;
-  return ADMIN_EMAILS.includes(user.email) || user.isAdmin === true;
+  if (!user) {
+    console.log('[isAdmin] User is null');
+    return false;
+  }
+
+  console.log('[isAdmin] Checking user:', { email: user.email, role: user.role, isAdmin: user.isAdmin });
+
+  // Primary check: role-based admin
+  if ((user.role || 'general') === 'admin') {
+    console.log('[isAdmin] User is admin via role');
+    return true;
+  }
+
+  // Fallback: email whitelist for initial admin assignment
+  if (user.email && ADMIN_EMAILS.includes(user.email)) {
+    console.log('[isAdmin] User is admin via email whitelist');
+    return true;
+  }
+
+  // Legacy check for backward compatibility
+  if (user.isAdmin === true) {
+    console.log('[isAdmin] User is admin via legacy isAdmin');
+    return true;
+  }
+
+  console.log('[isAdmin] User is not admin');
+  return false;
 }
 
 /**
- * Check if a user has pro features (admin or pro subscription)
+ * Check if a user has pro features (admin or pro role)
  */
 export function hasProFeatures(user: User | null): boolean {
   if (!user) return false;
-  return isAdmin(user) || user.subscriptionPlan === 'pro';
+  const role = user.role || 'general';
+  return role === 'pro' || role === 'admin';
 }
 
 /**
@@ -43,11 +69,12 @@ export function hasAffiliateAccess(user: User | null): boolean {
 }
 
 /**
- * Get user's invite limit based on their status
+ * Get user's invite limit based on their role
  */
 export function getInviteLimit(user: User | null): number {
   if (!user) return 0;
-  if (isAdmin(user)) return 999; // Unlimited for admins
-  if (user.subscriptionPlan === 'pro') return 10;
-  return 5; // Free users
+  const role = user.role || 'general';
+  if (role === 'admin') return 999;
+  if (role === 'pro') return 10;
+  return 5; // General users
 }

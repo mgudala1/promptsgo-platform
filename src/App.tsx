@@ -22,32 +22,48 @@ import { InviteSystemPage } from "./components/ui/InviteSystemPage";
 import { AffiliateProgramPage } from "./components/ui/AffiliateProgramPage";
 import { AffiliateDashboard } from "./components/AffiliateDashboard";
 import { AdminBulkImport } from "./components/AdminBulkImport";
+import { AdminDashboard } from "./components/AdminDashboard";
+import { UserManagement } from "./components/UserManagement";
+import { ContentModeration } from "./components/ContentModeration";
+import { AnalyticsReports } from "./components/AnalyticsReports";
+import { SubscriptionManagement } from "./components/SubscriptionManagement";
+import { InviteAffiliateManagement } from "./components/InviteAffiliateManagement";
+import { PlatformSettings } from "./components/PlatformSettings";
+import { SystemLogsHealth } from "./components/SystemLogsHealth";
 import { UIPlayground } from "./components/UIPlayground";
 import { Prompt } from "./lib/types";
 import { isAdmin } from "./lib/admin";
 import { prompts } from "./lib/api";
 
 type Page =
-  | { type: 'home' }
-  | { type: 'explore'; searchQuery?: string }
-  | { type: 'create'; editingPrompt?: Prompt }
-  | { type: 'prompt'; promptId: string }
-  | { type: 'profile'; userId: string; tab?: string }
-  | { type: 'portfolio-view'; portfolioId: string }
-  | { type: 'settings' }
-  | { type: 'subscription' }
-  | { type: 'billing' }
-  | { type: 'industry-packs' }
-  | { type: 'pack-view'; packId: string }
-  | { type: 'pack-create' }
-  | { type: 'about' }
-  | { type: 'terms' }
-  | { type: 'privacy' }
-  | { type: 'invite' }
-  | { type: 'affiliate' }
-  | { type: 'affiliate-dashboard' }
-  | { type: 'admin-bulk-import' }
-  | { type: 'ui-playground' };
+   | { type: 'home' }
+   | { type: 'explore'; searchQuery?: string }
+   | { type: 'create'; editingPrompt?: Prompt }
+   | { type: 'prompt'; promptId: string }
+   | { type: 'profile'; userId: string; tab?: string }
+   | { type: 'portfolio-view'; portfolioId: string }
+   | { type: 'settings' }
+   | { type: 'subscription' }
+   | { type: 'billing' }
+   | { type: 'industry-packs' }
+   | { type: 'pack-view'; packId: string }
+   | { type: 'pack-create' }
+   | { type: 'about' }
+   | { type: 'terms' }
+   | { type: 'privacy' }
+   | { type: 'invite' }
+   | { type: 'affiliate' }
+   | { type: 'affiliate-dashboard' }
+   | { type: 'admin-dashboard' }
+   | { type: 'admin-bulk-import' }
+   | { type: 'admin-content-moderation' }
+   | { type: 'admin-user-management' }
+   | { type: 'admin-analytics-reports' }
+   | { type: 'admin-subscription-management' }
+   | { type: 'admin-invite-affiliate-management' }
+   | { type: 'admin-platform-settings' }
+   | { type: 'admin-system-logs-health' }
+   | { type: 'ui-playground' };
 
 function AppContent() {
   const { state, dispatch } = useApp();
@@ -55,6 +71,26 @@ function AppContent() {
   const [currentPage, setCurrentPage] = useState<Page>({ type: 'home' });
 
   // Simple test to see if React is working
+  // Contrast validation logs
+  const getLuminance = (hex: string) => {
+    const r = parseInt(hex.slice(1,3),16)/255;
+    const g = parseInt(hex.slice(3,5),16)/255;
+    const b = parseInt(hex.slice(5,7),16)/255;
+    const [rr, gg, bb] = [r, g, b].map(c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+    return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
+  };
+  const getContrast = (c1: string, c2: string) => {
+    const l1 = getLuminance(c1);
+    const l2 = getLuminance(c2);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  };
+  const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
+  const background = getComputedStyle(document.documentElement).getPropertyValue('--background').trim();
+  const contrast = getContrast(primary, background);
+  console.log('Primary on background contrast ratio:', contrast.toFixed(2));
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  const accentContrast = getContrast(accent, background);
+  console.log('Accent on background contrast ratio:', accentContrast.toFixed(2));
   console.log('AppContent rendering, state:', state);
 
   const handleAuthClick = () => {
@@ -128,7 +164,8 @@ function AppContent() {
             lastLogin: fullPromptData.profiles.created_at || fullPromptData.created_at,
             badges: [],
             skills: [],
-            subscriptionPlan: fullPromptData.profiles.subscription_plan || 'free',
+            role: fullPromptData.profiles.role || 'general',
+            subscriptionStatus: fullPromptData.profiles.subscription_status || 'active',
             saveCount: 0,
             invitesRemaining: fullPromptData.profiles.invites_remaining || 0
           } : {
@@ -141,7 +178,8 @@ function AppContent() {
             lastLogin: fullPromptData.created_at,
             badges: [],
             skills: [],
-            subscriptionPlan: 'free',
+            role: 'general',
+            subscriptionStatus: 'active',
             saveCount: 0,
             invitesRemaining: 0
           },
@@ -222,7 +260,7 @@ function AppContent() {
 
   const handleSettingsClick = () => {
     if (state.user) {
-      setCurrentPage({ type: 'settings' });
+      setCurrentPage({ type: 'profile', userId: state.user.id, tab: 'settings' });
     }
   };
 
@@ -231,8 +269,24 @@ function AppContent() {
   };
 
   const handleAdminClick = (feature: string) => {
-    if (feature === 'bulk-import') {
+    if (feature === 'dashboard') {
+      setCurrentPage({ type: 'admin-dashboard' });
+    } else if (feature === 'bulk-import') {
       setCurrentPage({ type: 'admin-bulk-import' });
+    } else if (feature === 'content-moderation') {
+      setCurrentPage({ type: 'admin-content-moderation' });
+    } else if (feature === 'user-management') {
+      setCurrentPage({ type: 'admin-user-management' });
+    } else if (feature === 'analytics-reports') {
+      setCurrentPage({ type: 'admin-analytics-reports' });
+    } else if (feature === 'subscription-management') {
+      setCurrentPage({ type: 'admin-subscription-management' });
+    } else if (feature === 'invite-affiliate-management') {
+      setCurrentPage({ type: 'admin-invite-affiliate-management' });
+    } else if (feature === 'platform-settings') {
+      setCurrentPage({ type: 'admin-platform-settings' });
+    } else if (feature === 'system-logs-health') {
+      setCurrentPage({ type: 'admin-system-logs-health' });
     } else if (feature === 'ui-playground') {
       setCurrentPage({ type: 'ui-playground' });
     }
@@ -250,7 +304,7 @@ function AppContent() {
         onHomeClick={() => setCurrentPage({ type: 'home' })}
         onSavedClick={handleSavedClick}
         onSettingsClick={handleSettingsClick}
-        onIndustryPacksClick={() => setCurrentPage({ type: 'industry-packs' })}
+        onPromptPacksClick={() => setCurrentPage({ type: 'industry-packs' })}
         onAdminClick={handleAdminClick}
       />
       
@@ -301,10 +355,11 @@ function AppContent() {
             initialTab={currentPage.tab}
             onBack={handleBack}
             onPromptClick={handlePromptClick}
-            onNavigateToSettings={() => state.user && handleSettingsClick()}
-            onNavigateToIndustryPacks={() => setCurrentPage({ type: 'industry-packs' })}
+            onNavigateToPromptPacks={() => setCurrentPage({ type: 'industry-packs' })}
             onNavigateToPackView={(packId) => setCurrentPage({ type: 'pack-view', packId })}
             onNavigateToPortfolioView={(portfolioId) => setCurrentPage({ type: 'portfolio-view', portfolioId })}
+            onNavigateToBilling={() => setCurrentPage({ type: 'billing' })}
+            onNavigateToSubscription={() => setCurrentPage({ type: 'subscription' })}
           />
         )}
 
@@ -326,6 +381,7 @@ function AppContent() {
         {currentPage.type === 'billing' && (
           <BillingPage
             onBack={handleBack}
+            onNavigateToSubscription={() => setCurrentPage({ type: 'subscription' })}
           />
         )}
 
@@ -395,8 +451,40 @@ function AppContent() {
           <AffiliateDashboard />
         )}
 
+        {currentPage.type === 'admin-dashboard' && isAdmin(state.user) && (
+          <AdminDashboard />
+        )}
+
         {currentPage.type === 'admin-bulk-import' && isAdmin(state.user) && (
           <AdminBulkImport />
+        )}
+
+        {currentPage.type === 'admin-content-moderation' && isAdmin(state.user) && (
+          <ContentModeration />
+        )}
+
+        {currentPage.type === 'admin-user-management' && isAdmin(state.user) && (
+          <UserManagement />
+        )}
+
+        {currentPage.type === 'admin-analytics-reports' && isAdmin(state.user) && (
+          <AnalyticsReports />
+        )}
+
+        {currentPage.type === 'admin-subscription-management' && isAdmin(state.user) && (
+          <SubscriptionManagement />
+        )}
+
+        {currentPage.type === 'admin-invite-affiliate-management' && isAdmin(state.user) && (
+          <InviteAffiliateManagement />
+        )}
+
+        {currentPage.type === 'admin-platform-settings' && isAdmin(state.user) && (
+          <PlatformSettings />
+        )}
+
+        {currentPage.type === 'admin-system-logs-health' && isAdmin(state.user) && (
+          <SystemLogsHealth />
         )}
 
         {currentPage.type === 'ui-playground' && isAdmin(state.user) && (

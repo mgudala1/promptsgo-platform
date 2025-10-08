@@ -1,3 +1,5 @@
+export type UserRole = 'general' | 'pro' | 'admin';
+
 export interface User {
   id: string;
   username: string;
@@ -12,7 +14,8 @@ export interface User {
   website?: string;
   github?: string;
   twitter?: string;
-  subscriptionPlan: 'free' | 'pro';
+  role?: UserRole;
+  subscriptionStatus?: 'active' | 'cancelled' | 'past_due';
   saveCount: number;
   invitesRemaining: number;
   isAffiliate?: boolean;
@@ -50,6 +53,8 @@ export interface Prompt {
   saveCount: number;
   forkCount: number;
   commentCount: number;
+  successRate?: number; // Success rate (1-5 scale)
+  successVotesCount?: number; // Number of success votes
   createdAt: string;
   updatedAt: string;
   author: User;
@@ -125,12 +130,14 @@ export interface SearchFilters {
   models: string[];
   tags: string[];
   categories: string[];
+  successRateMin?: number; // Minimum success rate (1-5)
+  successRateMax?: number; // Maximum success rate (1-5)
   dateRange?: {
     from: Date;
     to: Date;
   };
   author?: string;
-  sortBy: 'relevance' | 'trending' | 'latest' | 'mostLiked' | 'mostForked';
+  sortBy: 'relevance' | 'trending' | 'latest' | 'mostLiked' | 'mostForked' | 'highestRated';
 }
 
 export interface Notification {
@@ -173,7 +180,7 @@ export interface Draft {
 export interface Subscription {
   id: string;
   userId: string;
-  plan: 'free' | 'pro';
+  plan: UserRole;
   status: 'active' | 'cancelled' | 'past_due';
   stripeSubscriptionId?: string;
   currentPeriodEnd?: string;
@@ -270,7 +277,6 @@ export interface PromptPack {
   createdBy: string;
   isOfficial: boolean; // Official PromptsGo packs vs community
   tags: string[];
-  downloadCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -338,4 +344,13 @@ export interface PromptTemplate {
 
 export interface TemplateValues {
   [fieldId: string]: string;
+}
+
+// Success Rate Tracking types
+export interface SuccessVote {
+  id: string;
+  promptId: string;
+  userId: string;
+  voteValue: number; // 1-5 scale
+  createdAt: string;
 }

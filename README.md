@@ -10,7 +10,8 @@
   - **User Authentication**: Secure authentication with automatic email verification
   - **Advanced Search**: Find prompts by category, tags, model compatibility, and more
   - **Social Features**: Hearts, comments, saves (with limits), and following system
-  - **Industry Packs**: Curated prompt collections for specific industries and use cases
+  - **Prompt Packs**: Curated prompt collections for specific industries and use cases
+  - **Pack Prompt Restrictions**: Intellectual property protection for content creators
   - **Responsive Design**: Beautiful UI built with React and Tailwind CSS
   
   ### Free Tier Features
@@ -87,7 +88,47 @@
   - **✅ Enhanced Error Handling**: Graceful failure recovery and user feedback
   - **✅ Admin Tools**: Complete bulk import and content management system
   - **✅ TypeScript Clean**: Zero compilation errors, full type safety
-  
+
+  ## 📦 Prompt Packs & Content Protection
+
+  ### Pack Prompt Usage Restrictions
+
+  PromptsGo implements strict intellectual property protections for content creators who contribute to Prompt Packs. Pro users can create and sell their own curated prompt packs, while maintaining access to premium content from other creators.
+
+  #### ✅ What Pro Users CAN Do with Pack Prompts:
+  - **View and Study**: Full access to read prompts, see variables, understand structure
+  - **Copy to Clipboard**: Use prompts in their own AI tools (ChatGPT, Claude, etc.)
+  - **Save to Collections**: Bookmark favorite pack prompts for easy reference
+  - **Success Rate Voting**: Vote on effectiveness to help community
+  - **Template Variable Filling**: Use the interactive template forms
+  - **Comments/Discussion**: Engage with community about prompt usage
+
+  #### ❌ What Pro Users CANNOT Do with Pack Prompts:
+  - **Fork/Remix**: Cannot create derivative versions (fork button hidden)
+  - **Edit**: Cannot modify the original content
+  - **Portfolio Inclusion**: Cannot claim these as their own work in portfolios
+  - **Republish**: Cannot share as their own prompts
+  - **Commercial Attribution**: Cannot use in client work without proper licensing
+
+  ### Business Rationale
+
+  **Protects Content Creators:**
+  - Prompt pack creators retain attribution and IP rights
+  - Prevents their work from being claimed by others
+  - Maintains exclusivity and perceived value of packs
+  - Encourages original content creation
+
+  **Provides Clear Pro Value:**
+  - Pro users can create and sell their own prompt packs
+  - Access to premium curated content from other creators
+  - Learning from expert prompt engineering
+  - Time-saving templates for common use cases
+
+  **Avoids Legal Issues:**
+  - Clear usage boundaries prevent IP disputes
+  - Professional content creators feel protected
+  - Platform maintains good relationships with contributors
+
   ## 🛠 Technology Stack
   
   ### Frontend

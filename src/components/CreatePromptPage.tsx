@@ -468,7 +468,7 @@ export function CreatePromptPage({ onBack, editingPrompt, onPublish }: CreatePro
         {/* Main Editor */}
         <div className="lg:col-span-2">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="editor">Editor</TabsTrigger>
               <TabsTrigger value="preview">
                 <Eye className="h-4 w-4 mr-2" />
